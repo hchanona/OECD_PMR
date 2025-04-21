@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -48,9 +47,11 @@ with col2:
 with col3:
     st.metric(label="Global Percentile", value=f"{round(global_pct)}%", help="Relative to all countries in the dataset")
 
+# ---------------- MODO OPTIMIZADO ----------------
 if mode == "Optimized":
     st.subheader("🔎 Regulatory Subcomponent Overview – Current Position by Percentile")
     row = df[df["Country"] == selected_country].iloc[0]
+    
     summary = []
     for ind in low_level_indicators:
         score = row[ind]
@@ -67,6 +68,7 @@ if mode == "Optimized":
     df_summary = df_summary.sort_values("Percentile", ascending=False)
     st.dataframe(df_summary.reset_index(drop=True), use_container_width=True)
 
+    # Sugerencias optimizadas
     st.subheader("📌 Suggested Reform Priorities")
     original_medium = row[medium_level_indicators].mean()
 
@@ -110,3 +112,4 @@ if mode == "Optimized":
 
 else:
     st.info("Hierarchical simulation mode coming soon.")
+
