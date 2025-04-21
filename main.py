@@ -28,15 +28,17 @@ medium_level_indicators = [
 low_level_indicators = [col for col in df.columns if col not in ["Country", "OECD", "GDP_PCAP_2023", "PMR_2023"] + medium_level_indicators]
 
 st.sidebar.header("Navigation Mode")
-mode = st.sidebar.radio("Choose simulation mode:", ["Optimized", "Autonomous (hierarchical)"])
+mode = st.sidebar.radio("Choose simulation mode:", ["Optimized"])
 
 countries = df["Country"].tolist()
-selected_country = st.sidebar.selectbox("Select a country", countries, index=0)
+selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Chile") if "Chile" in countries else 0)
 
 pmr_score = df[df["Country"] == selected_country]["PMR_2023"].values[0]
+gdp_score = df[df["Country"] == selected_country]["GDP_PCAP_2023"].values[0]
+
+# Percentil global
 global_pct = (df["PMR_2023"] > pmr_score).mean() * 100
 
-# Indicadores generales
 col1, col2 = st.columns(2)
 with col1:
     st.metric(label=f"{selected_country} PMR Score", value=round(pmr_score, 3))
@@ -131,7 +133,7 @@ else:
     st.info("Hierarchical simulation mode coming soon.")
 
 # Apartado "PMR Trends" separado
-st.header("📈 PMR Trends")
+st.markdown('### 📈 PMR Trends')
 
 # Modo de regresión
 st.subheader("🔎 PMR Score vs. GDP per capita & OECD Membership")
