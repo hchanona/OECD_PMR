@@ -118,13 +118,34 @@ if mode == "Optimized":
 
     # Recalcular valores de indicadores medios afectados
     medium_map = {
-        "Distortions Induced by Public Ownership": ["Quality and Scope of Public Ownership", "Governance of SOEs"],
-        "Involvement in Business Operations": ["Retail Price Controls and Regulation", "Involvement in Business Operations in Network Sectors", "Involvement in Business Operations in Service Sectors", "Public Procurement"],
-        "Regulations Impact Evaluation": ["Assessment of Impact on Competition", "Interaction with Stakeholders"],
-        "Administrative and Regulatory Burden": ["Administrative Requirements for Limited Liability Companies and Personally-owned Enterprises", "Communication and Simplification of  Administrative and Regulatory Burden"],
-        "Barriers in Service & Network sectors": ["Barriers to entry in Service Sectors", "Barriers to entry in Network Sectors"],
-        "Barriers to Trade and Investment": ["Barriers to FDI", "Barriers to Trade Facilitation", "Tariff Barriers"]
-    }
+    "Distortions Induced by Public Ownership": [
+        "Quality and Scope of Public Ownership",
+        "Governance of SOEs"
+    ],
+    "Involvement in Business Operations": [
+        "Retail Price Controls and Regulation",
+        "Involvement in Business Operations in Network Sectors",
+        "Involvement in Business Operations in Service Sectors",
+        "Public Procurement"
+    ],
+    "Regulations Impact Evaluation": [
+        "Assessment of Impact on Competition",
+        "Interaction with Stakeholders"
+    ],
+    "Administrative and Regulatory Burden": [
+        "Administrative Requirements for Limited Liability Companies and Personally-owned Enterprises",
+        "Communication and Simplification of Administrative and Regulatory Burden"
+    ],
+    "Barriers in Service & Network sectors": [
+        "Barriers to entry in Service Sectors",
+        "Barriers to entry in Network Sectors"
+    ],
+    "Barriers to Trade and Investment": [
+        "Barriers to FDI",
+        "Barriers to Trade Facilitation8",
+        "Tariff Barriers9"
+    ]
+}
 
     for key, sublist in medium_map.items():
         simulated_row[key] = simulated_row[sublist].mean()
