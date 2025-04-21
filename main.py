@@ -39,7 +39,8 @@ gdp_score = df[df["Country"] == selected_country]["GDP_PCAP_2023"].values[0]
 # Percentil global
 global_pct = (df["PMR_2023"] > pmr_score).mean() * 100
 
-col1, col2, col3 = st.columns(3)with col1:
+col1, col2, col3 = st.columns(3)
+with col1:
     st.metric(label=f"{selected_country} PMR Score", value=round(pmr_score, 3))
 with col2:
     st.metric(label="GDP per capita (2023, PPP)", value=f"${round(gdp_score):,}")
@@ -142,5 +143,6 @@ if mode == "Optimized":
 
 else:
     st.info("Hierarchical simulation mode coming soon.")
+
 
 
