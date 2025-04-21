@@ -43,7 +43,10 @@ col1, col2, col3 = st.columns(3)
 with col1:
     st.metric(label=f"{selected_country} PMR Score", value=round(pmr_score, 3))
 with col2:
-    st.metric(label="GDP per capita (2023, PPP)", value=f"${round(gdp_score):,}")
+    oecd_avg = df[df['OECD'] == 1]['PMR_2023'].mean()
+    non_oecd_avg = df[df['OECD'] == 0]['PMR_2023'].mean()
+    st.metric(label='OECD Average PMR', value=round(oecd_avg, 3), help='Average PMR for OECD countries')
+    st.metric(label='Non-OECD Average PMR', value=round(non_oecd_avg, 3), help='Average PMR for Non-OECD countries')
 with col3:
     st.metric(label="Global Percentile", value=f"{round(global_pct)}%", help="Relative to all countries in the dataset")
 
