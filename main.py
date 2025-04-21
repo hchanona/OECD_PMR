@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import plotly.express as px
 import plotly.graph_objects as go
 import statsmodels.api as sm
 
@@ -30,16 +31,20 @@ st.sidebar.header("Navigation Mode")
 mode = st.sidebar.radio("Choose simulation mode:", ["Optimized", "Autonomous (hierarchical)"])
 
 countries = df["Country"].tolist()
-selected_country = st.sidebar.selectbox("Select a country", countries, index=0)
+selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Chile") if "Chile" in countries else 0)
 
 pmr_score = df[df["Country"] == selected_country]["PMR_2023"].values[0]
+gdp_score = df[df["Country"] == selected_country]["GDP_PCAP_2023"].values[0]
+
+# Percentil global
 global_pct = (df["PMR_2023"] > pmr_score).mean() * 100
 
-# Indicadores generales
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 with col1:
     st.metric(label=f"{selected_country} PMR Score", value=round(pmr_score, 3))
 with col2:
+    st.metric(label="GDP per capita (2023, PPP)", value=f"${round(gdp_score):,}")
+with col3:
     st.metric(label="Global Percentile", value=f"{round(global_pct)}%", help="Relative to all countries in the dataset")
 
 # Radar chart: país vs promedio OCDE
@@ -70,9 +75,9 @@ if mode == "Optimized":
     for ind in low_level_indicators:
         score = row[ind]
         percentile = (df[ind] > score).mean() * 100
-        if percentile > 80:
+        if percentile > 90:
             level = "🔴 High"
-        elif percentile > 60:
+        elif percentile > 50:
             level = "🟠 Medium"
         else:
             level = "🟢 Low"
@@ -125,4 +130,3 @@ if mode == "Optimized":
 
 else:
     st.info("Hierarchical simulation mode coming soon.")
-
