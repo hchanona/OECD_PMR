@@ -142,13 +142,15 @@ if mode == "Optimized":
     ],
     "Barriers to Trade and Investment": [
         "Barriers to FDI",
-        "Barriers to Trade Facilitation8",
-        "Tariff Barriers9"
+        "Barriers to Trade Facilitation",
+        "Tariff Barriers"
     ]
 }
 
     for key, sublist in medium_map.items():
-        simulated_row[key] = simulated_row[sublist].mean()
+        valid_subs = [s for s in sublist if s in simulated_row.index]
+    if valid_subs:
+        simulated_row[key] = simulated_row[valid_subs].mean()
 
     new_medium_avg = simulated_row[medium_level_indicators].mean()
     new_percentile = (df["PMR_2023"] > new_medium_avg).mean()*100
@@ -164,6 +166,3 @@ if mode == "Optimized":
 
 else:
     st.info("Hierarchical simulation mode coming soon.")
-
-
-
