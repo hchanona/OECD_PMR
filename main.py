@@ -53,7 +53,7 @@ with col2:
 with col3:
     st.metric(label="Global Percentile", value=f"{round(global_pct)}%", help="Relative to all countries in the dataset")
 
-# Mostrar los tres rubros con peor desempeño
+# Top 3 subcomponentes más restrictivos
 st.subheader("Top 3 Most Restrictive Subcomponents")
 data_sorted = data_country.sort_values("Value", ascending=False).copy()
 top_indicators = data_sorted.head(3).index.tolist()
@@ -65,7 +65,7 @@ for i, ind in enumerate(top_indicators):
     cols[i].write(f"Score: {round(val,2)}")
     cols[i].write(f"Global percentile: {round(pct)}%")
 
-# Visualizar subcomponentes
+# Subcomponentes
 st.subheader("Subcomponent Scores")
 data_plot = data_country.copy()
 data_plot["Component"] = data_plot.index
@@ -74,27 +74,29 @@ fig = px.bar(data_plot.sort_values("Value", ascending=True), x="Value", y="Compo
              labels={"Value": "Score", "Component": "Indicator"})
 st.plotly_chart(fig, use_container_width=True)
 
-# Comparación radar con país de referencia
-st.subheader("Regulatory Profile Comparison")
+# Radar chart simplificado
+st.subheader("Radar Chart: Focus on Most Restrictive Areas")
 rdata = go.Figure()
-rdata.add_trace(go.Scatterpolar(r=data_country.loc[indicators, "Value"],
-                                theta=indicators,
-                                fill='toself', name=selected_country))
-rdata.add_trace(go.Scatterpolar(r=data_benchmark.loc[indicators, "Value"],
-                                theta=indicators,
-                                fill='toself', name=benchmark_country, opacity=0.6))
+rdata.add_trace(go.Scatterpolar(r=data_country.loc[top_indicators, "Value"],
+                                theta=top_indicators,
+                                fill='toself', name=selected_country,
+                                line=dict(color='blue')))
+rdata.add_trace(go.Scatterpolar(r=data_benchmark.loc[top_indicators, "Value"],
+                                theta=top_indicators,
+                                fill='toself', name=benchmark_country,
+                                line=dict(color='lightblue')))
 rdata.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0,6])),
                     showlegend=True)
 st.plotly_chart(rdata, use_container_width=True)
 
-# Contexto comparativo con ingreso similar
+# Comparación por ingreso similar
 st.subheader("Countries with Similar Income")
 low_bound = gdp_score * 0.9
 high_bound = gdp_score * 1.1
 gdp_peers = df[(df["GDP_PCAP_2023"] >= low_bound) & (df["GDP_PCAP_2023"] <= high_bound)]
 st.dataframe(gdp_peers[["Country", "GDP_PCAP_2023", "PMR_2023"]].sort_values("GDP_PCAP_2023"))
 
-# Distribución PMR vs ingreso con línea de regresión
+# PMR vs ingreso con regresión
 st.subheader("Distribution of PMR vs Income")
 fig2 = px.scatter(df, x="GDP_PCAP_2023", y="PMR_2023", text="Country",
                   color=df["OECD"].map({1: "OECD", 0: "Non-OECD"}),
@@ -126,3 +128,4 @@ with col6:
     st.metric("Simulated Percentile", f"{round(simulated_percentile)}%")
 
 st.success("This sandbox is an unofficial exploratory tool using publicly available PMR and World Bank data.")
+
