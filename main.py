@@ -31,15 +31,13 @@ st.sidebar.header("Navigation Mode")
 mode = st.sidebar.radio("Choose simulation mode:", ["Optimized", "Autonomous (hierarchical)"])
 
 countries = df["Country"].tolist()
-selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Chile") if "Chile" in countries else 0)
+selected_country = st.sidebar.selectbox("Select a country", countries, index=0)
 
 pmr_score = df[df["Country"] == selected_country]["PMR_2023"].values[0]
-gdp_score = df[df["Country"] == selected_country]["GDP_PCAP_2023"].values[0]
-
-# Percentil global
 global_pct = (df["PMR_2023"] > pmr_score).mean() * 100
 
-col1, col2, col3 = st.columns(3)
+# Indicadores generales
+col1, col2 = st.columns(2)
 with col1:
     st.metric(label=f"{selected_country} PMR Score", value=round(pmr_score, 3))
 with col2:
@@ -47,8 +45,6 @@ with col2:
     non_oecd_avg = df[df['OECD'] == 0]['PMR_2023'].mean()
     st.metric(label='OECD Average PMR', value=round(oecd_avg, 3), help='Average PMR for OECD countries')
     st.metric(label='Non-OECD Average PMR', value=round(non_oecd_avg, 3), help='Average PMR for Non-OECD countries')
-with col3:
-    st.metric(label="Global Percentile", value=f"{round(global_pct)}%", help="Relative to all countries in the dataset")
 
 # Radar chart: país vs promedio OCDE
 st.subheader("📊 PMR Profile: Country vs OECD Average (Medium-level indicators)")
@@ -133,3 +129,30 @@ if mode == "Optimized":
 
 else:
     st.info("Hierarchical simulation mode coming soon.")
+
+# Apartado "PMR Trends" separado
+st.header("📈 PMR Trends")
+
+# Modo de regresión
+st.subheader("🔎 PMR Score vs. GDP per capita & OECD Membership")
+st.write("""
+Este análisis estudia cómo el **ingreso per cápita** y la **pertenencia a la OCDE** afectan el **puntaje PMR** de un país.
+""")
+
+# Preparar las variables para la regresión
+X = df[["GDP_PCAP_2023", "OECD"]]  # Variables independientes
+X = sm.add_constant(X)  # Añadir constante (intercepto)
+y = df["PMR_2023"]  # Variable dependiente
+
+# Realizar la regresión
+model = sm.OLS(y, X).fit()
+
+# Mostrar resumen de los resultados de la regresión
+st.write(model.summary())
+
+# Sección de análisis gráfico
+st.subheader("📊 Distribución de PMR vs Ingreso per cápita")
+fig = px.scatter(df, x="GDP_PCAP_2023", y="PMR_2023", text="Country", title="PMR vs Income per Capita", labels={"GDP_PCAP_2023": "Income per capita (PPP)", "PMR_2023": "PMR Score"})
+fig.update_traces(textposition='top center')
+st.plotly_chart(fig)
+
