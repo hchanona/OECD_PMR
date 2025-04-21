@@ -31,7 +31,7 @@ st.sidebar.header("Navigation Mode")
 mode = st.sidebar.radio("Choose simulation mode:", ["Optimized", "Autonomous (hierarchical)"])
 
 countries = df["Country"].tolist()
-selected_country = st.sidebar.selectbox("Select a country", countries, index=0) if "Chile" in countries else 0)
+selected_country = st.sidebar.selectbox("Select a country", countries, index=0)
 
 pmr_score = df[df["Country"] == selected_country]["PMR_2023"].values[0]
 gdp_score = df[df["Country"] == selected_country]["GDP_PCAP_2023"].values[0]
@@ -142,6 +142,5 @@ if mode == "Optimized":
 
 else:
     st.info("Hierarchical simulation mode coming soon.")
-
 
 
