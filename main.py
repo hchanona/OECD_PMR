@@ -1,8 +1,10 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import statsmodels.api as sm
 
 st.set_page_config(page_title="PMR Sandbox (unofficial)", layout="wide")
 st.title("PMR Sandbox (unofficial)")
@@ -15,32 +17,25 @@ def load_data():
 
 df = load_data()
 
-st.sidebar.header("Explore the PMR Indicators")
-group_filter = st.sidebar.radio("Select country group", ["All", "OECD", "Non-OECD"])
+medium_level_indicators = [
+    "Distortions Induced by Public Ownership",
+    "Involvement in Business Operations",
+    "Regulations Impact Evaluation",
+    "Administrative and Regulatory Burden",
+    "Barriers in Service & Network sectors",
+    "Barriers to Trade and Investment"
+]
 
-if group_filter == "OECD":
-    df_filtered = df[df["OECD"] == 1]
-elif group_filter == "Non-OECD":
-    df_filtered = df[df["OECD"] == 0]
-else:
-    df_filtered = df.copy()
+low_level_indicators = [col for col in df.columns if col not in ["Country", "OECD", "GDP_PCAP_2023", "PMR_2023"] + medium_level_indicators]
 
-countries = df_filtered["Country"].tolist()
+st.sidebar.header("Navigation Mode")
+mode = st.sidebar.radio("Choose simulation mode:", ["Optimized", "Autonomous (hierarchical)"])
+
+countries = df["Country"].tolist()
 selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Chile") if "Chile" in countries else 0)
-benchmark_country = st.sidebar.selectbox("Compare to", df["Country"].tolist(), index=df["Country"].tolist().index("Denmark") if "Denmark" in df["Country"].tolist() else 1)
-
-indicators = df.columns[2:-1]  # exclude Country, OECD, GDP
-
-def get_country_vector(df, country):
-    row = df[df["Country"] == country]
-    return row[indicators].T.rename(columns={row.index[0]: "Value"})
-
-data_country = get_country_vector(df, selected_country)
-data_benchmark = get_country_vector(df, benchmark_country)
 
 pmr_score = df[df["Country"] == selected_country]["PMR_2023"].values[0]
 gdp_score = df[df["Country"] == selected_country]["GDP_PCAP_2023"].values[0]
-benchmark_score = df[df["Country"] == benchmark_country]["PMR_2023"].values[0]
 
 # Percentil global
 global_pct = (df["PMR_2023"] > pmr_score).mean() * 100
@@ -53,79 +48,65 @@ with col2:
 with col3:
     st.metric(label="Global Percentile", value=f"{round(global_pct)}%", help="Relative to all countries in the dataset")
 
-# Top 3 subcomponentes más restrictivos
-st.subheader("Top 3 Most Restrictive Subcomponents")
-data_sorted = data_country.sort_values("Value", ascending=False).copy()
-top_indicators = data_sorted.head(3).index.tolist()
-cols = st.columns(3)
-for i, ind in enumerate(top_indicators):
-    val = data_sorted.loc[ind, "Value"]
-    pct = (df[ind] > val).mean()*100
-    cols[i].markdown(f"**{ind}**")
-    cols[i].write(f"Score: {round(val,2)}")
-    cols[i].write(f"Global percentile: {round(pct)}%")
+if mode == "Optimized":
+    st.subheader("🔎 Regulatory Subcomponent Overview – Current Position by Percentile")
+    row = df[df["Country"] == selected_country].iloc[0]
+    summary = []
+    for ind in low_level_indicators:
+        score = row[ind]
+        percentile = (df[ind] > score).mean() * 100
+        if percentile > 80:
+            level = "🔴 High"
+        elif percentile > 60:
+            level = "🟠 Medium"
+        else:
+            level = "🟢 Low"
+        summary.append({"Indicator": ind, "Score": round(score, 2), "Percentile": round(percentile), "Level": level})
 
-# Subcomponentes
-st.subheader("Subcomponent Scores")
-data_plot = data_country.copy()
-data_plot["Component"] = data_plot.index
-fig = px.bar(data_plot.sort_values("Value", ascending=True), x="Value", y="Component", orientation="h",
-             color="Value", color_continuous_scale="Reds",
-             labels={"Value": "Score", "Component": "Indicator"})
-st.plotly_chart(fig, use_container_width=True)
+    df_summary = pd.DataFrame(summary)
+    df_summary = df_summary.sort_values("Percentile", ascending=False)
+    st.dataframe(df_summary.reset_index(drop=True), use_container_width=True)
 
-# Radar chart simplificado
-st.subheader("Radar Chart: Focus on Most Restrictive Areas")
-rdata = go.Figure()
-rdata.add_trace(go.Scatterpolar(r=data_country.loc[top_indicators, "Value"],
-                                theta=top_indicators,
-                                fill='toself', name=selected_country,
-                                line=dict(color='blue')))
-rdata.add_trace(go.Scatterpolar(r=data_benchmark.loc[top_indicators, "Value"],
-                                theta=top_indicators,
-                                fill='toself', name=benchmark_country,
-                                line=dict(color='lightblue')))
-rdata.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0,6])),
-                    showlegend=True)
-st.plotly_chart(rdata, use_container_width=True)
+    st.subheader("📌 Suggested Reform Priorities")
+    original_medium = row[medium_level_indicators].mean()
 
-# Comparación por ingreso similar
-st.subheader("Countries with Similar Income")
-low_bound = gdp_score * 0.9
-high_bound = gdp_score * 1.1
-gdp_peers = df[(df["GDP_PCAP_2023"] >= low_bound) & (df["GDP_PCAP_2023"] <= high_bound)]
-st.dataframe(gdp_peers[["Country", "GDP_PCAP_2023", "PMR_2023"]].sort_values("GDP_PCAP_2023"))
+    impacts = []
+    for ind in low_level_indicators:
+        current = row[ind]
+        improved = max(0, current - 1)
+        new_row = row.copy()
+        new_row[ind] = improved
+        temp_df = pd.DataFrame([new_row])
+        new_medium_values = temp_df[medium_level_indicators].values.flatten()
+        new_pmr = new_medium_values.mean()
+        delta = new_pmr - original_medium
+        percentile = (df[ind] > current).mean()*100
+        impacts.append({"indicator": ind, "score": current, "percentile": percentile, "impact": delta})
 
-# PMR vs ingreso con regresión
-st.subheader("Distribution of PMR vs Income")
-fig2 = px.scatter(df, x="GDP_PCAP_2023", y="PMR_2023", text="Country",
-                  color=df["OECD"].map({1: "OECD", 0: "Non-OECD"}),
-                  trendline="ols",
-                  labels={"GDP_PCAP_2023": "GDP per capita (2023, PPP)", "PMR_2023": "PMR Score"})
-fig2.update_traces(textposition='top center')
-st.plotly_chart(fig2, use_container_width=True)
+    impacts_sorted = sorted(impacts, key=lambda x: x["impact"])
+    top3 = impacts_sorted[:3]
 
-# Simulación de reforma
-st.subheader("Simulate Reforms")
-simulated = data_country.copy()
-sliders = {}
-for ind in top_indicators:
-    val = data_country.loc[ind, "Value"]
-    sliders[ind] = st.slider(f"{ind}", min_value=0.0, max_value=6.0, value=float(val), step=0.1)
-    simulated.loc[ind, "Value"] = sliders[ind]
+    st.markdown("These are the 3 reform areas with the greatest potential to reduce your country's PMR score:")
+    sliders = {}
+    for item in top3:
+        st.markdown(f"**{item['indicator']}**\n\nCurrent score: {round(item['score'],2)} | Percentile: {round(item['percentile'])}%\n\nEstimated PMR change if improved: {round(item['impact'], 3)}")
+        sliders[item['indicator']] = st.slider(f"{item['indicator']}", 0.0, 6.0, float(item['score']), 0.1)
 
-original_avg = data_country["Value"].mean()
-simulated_avg = simulated["Value"].mean()
-simulated_percentile = (df["PMR_2023"] > simulated_avg).mean()*100
+    simulated_row = row.copy()
+    for ind, val in sliders.items():
+        simulated_row[ind] = val
 
-st.write("---")
-col4, col5, col6 = st.columns(3)
-with col4:
-    st.metric("Original PMR Estimate", round(original_avg, 3))
-with col5:
-    st.metric("Simulated PMR Estimate", round(simulated_avg, 3), delta=round(simulated_avg-original_avg,3))
-with col6:
-    st.metric("Simulated Percentile", f"{round(simulated_percentile)}%")
+    new_medium_avg = simulated_row[medium_level_indicators].mean()
+    new_percentile = (df["PMR_2023"] > new_medium_avg).mean()*100
 
-st.success("This sandbox is an unofficial exploratory tool using publicly available PMR and World Bank data.")
+    st.write("---")
+    col4, col5, col6 = st.columns(3)
+    with col4:
+        st.metric("Original PMR Estimate", round(original_medium, 3))
+    with col5:
+        st.metric("Simulated PMR Estimate", round(new_medium_avg, 3), delta=round(new_medium_avg - original_medium, 3))
+    with col6:
+        st.metric("Simulated Percentile", f"{round(new_percentile)}%")
 
+else:
+    st.info("Hierarchical simulation mode coming soon.")
