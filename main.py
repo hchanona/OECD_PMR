@@ -10,7 +10,7 @@ st.title("PMR Reform Navigator")
 # Cargar datos combinados con PIB per cápita
 @st.cache_data
 def load_data():
-    df = pd.read_excel("data/PMR_with_GDP.xlsx")
+    df = pd.read_excel("PMR_with_GDP.xlsx")
     df = df.dropna(how="all").dropna(axis=1, how="all")
     return df
 
