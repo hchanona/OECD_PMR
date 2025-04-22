@@ -27,7 +27,11 @@ medium_level_indicators = [
 
 low_level_indicators = [col for col in df.columns if col not in ["Country", "OECD", "GDP_PCAP_2023", "PMR_2023"] + medium_level_indicators]
 
-# Selección del modo de navegación
+# Sección PMR Analysis
+st.sidebar.header("PMR Analysis")
+st.sidebar.write("This section provides the analysis of PMR trends, including regression and comparison.")
+
+# Modo de navegación
 st.sidebar.header("Navigation Mode")
 mode = st.sidebar.radio("Choose simulation mode:", ["Optimized", "Autonomous (hierarchical)"])
 
@@ -161,4 +165,5 @@ st.subheader("📊 Distribución de PMR vs Ingreso per cápita")
 fig = px.scatter(df, x="GDP_PCAP_2023", y="PMR_2023", text="Country", title="PMR vs Income per Capita", labels={"GDP_PCAP_2023": "Income per capita (PPP)", "PMR_2023": "PMR Score"})
 fig.update_traces(textposition='top center')
 st.plotly_chart(fig)
+
 
