@@ -132,7 +132,8 @@ elif mode == "Stats":
     x_vals = np.linspace(df_log["log_gdp"].min(), df_log["log_gdp"].max(), 100)
     X_pred = sm.add_constant(pd.DataFrame({
     "log_gdp": x_vals,
-    "OECD": np.full_like(x_vals, df_log["OECD"].mean())}))
+    "OECD": np.repeat(df_log["OECD"].mean(), len(x_vals))}))
+
 
     y_vals = model.predict(X_pred)
 
