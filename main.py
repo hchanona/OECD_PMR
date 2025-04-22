@@ -15,6 +15,7 @@ def load_data():
     return df
 
 df = load_data()
+st.write(f"🌍 This dataset includes **{df['Country'].nunique()} countries**.")
 
 # === VARIABLES ===
 medium_level_indicators = [
@@ -30,7 +31,6 @@ low_level_indicators = [col for col in df.columns if col not in ["Country", "OEC
 # === SIDEBAR ===
 st.sidebar.header("Options")
 mode = st.sidebar.radio("What do you want to do?", ["Guided simulation", "Autonomous simulation", "Stats"])
-
 countries = df["Country"].tolist()
 selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Chile") if "Chile" in countries else 0)
 
@@ -58,25 +58,30 @@ if mode == "Guided simulation":
     radar_fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0,6])), showlegend=True)
     st.plotly_chart(radar_fig, use_container_width=True)
 
-    st.subheader("🔎 Regulatory Subcomponent Overview – Current Position by Percentile")
+    st.subheader("🔎 Regulatory Subcomponent Overview – Current Position by Rank")
+    ranks = {ind: df[ind].rank(method="min").astype(int) for ind in low_level_indicators}
+    rank_df = pd.DataFrame(ranks)
     summary = []
     for ind in low_level_indicators:
         score = row[ind]
-        percentile = (df[ind] > score).mean() * 100
-        level = "🔴 High" if percentile > 90 else "🟠 Medium" if percentile > 50 else "🟢 Low"
-        summary.append({"Indicator": ind, "Score": round(score, 2), "Percentile": round(percentile), "Level": level})
+        rank = int(rank_df[df["Country"] == selected_country][ind])
+        summary.append({
+            "Indicator": ind,
+            "Score": round(score, 2),
+            "Rank": rank
+        })
 
-    df_summary = pd.DataFrame(summary).sort_values("Percentile", ascending=False)
+    df_summary = pd.DataFrame(summary).sort_values("Rank")
     st.dataframe(df_summary.reset_index(drop=True), use_container_width=True)
 
     st.subheader("📌 Suggested Reform Priorities")
-    top3 = df_summary.head(3)["Indicator"].tolist()
+    top3 = df_summary.tail(3)["Indicator"].tolist()  # peores posiciones
 
     sliders = {}
     for ind in top3:
         current = row[ind]
-        percentile = (df[ind] > current).mean() * 100
-        st.markdown(f"**{ind}**\n\nCurrent score: {round(current,2)} | Percentile: {round(percentile)}%")
+        rank = int(rank_df[df["Country"] == selected_country][ind])
+        st.markdown(f"**{ind}**\n\nCurrent score: {round(current,2)} | Rank: {rank}")
         sliders[ind] = st.slider(ind, 0.0, 6.0, float(current), 0.1)
 
     simulated_row = row.copy()
@@ -89,7 +94,7 @@ if mode == "Guided simulation":
     df_simulated = df.copy()
     df_simulated.loc[df_simulated["Country"] == selected_country, medium_level_indicators] = simulated_row[medium_level_indicators]
     df_simulated["PMR_simulated"] = df_simulated[medium_level_indicators].mean(axis=1)
-    new_percentile = (df_simulated["PMR_simulated"] > new_medium_avg).mean() * 100
+    new_rank = df_simulated["PMR_simulated"].rank(method="min").astype(int)[df_simulated["Country"] == selected_country].values[0]
 
     st.write("---")
     col4, col5, col6 = st.columns(3)
@@ -98,7 +103,7 @@ if mode == "Guided simulation":
     with col5:
         st.metric("Simulated PMR Estimate", round(new_medium_avg, 3), delta=round(new_medium_avg - original_medium, 3))
     with col6:
-        st.metric("Simulated Percentile", f"{round(new_percentile)}%")
+        st.metric("Simulated Rank", f"{int(new_rank)}")
 
 # === MODO: AUTONOMOUS SIMULATION ===
 elif mode == "Autonomous simulation":
@@ -114,12 +119,10 @@ elif mode == "Stats":
     Los coeficientes se interpretan como **elasticidades** o diferencias porcentuales aproximadas.
     """)
 
-    # Preparar datos
     df_log = df[(df["PMR_2023"] > 0) & (df["GDP_PCAP_2023"] > 0)].copy()
     df_log["log_pmr"] = np.log(df_log["PMR_2023"])
     df_log["log_gdp"] = np.log(df_log["GDP_PCAP_2023"])
 
-    # Entrenamiento del modelo
     X = sm.add_constant(df_log[["log_gdp", "OECD"]])
     y = df_log["log_pmr"]
     model = sm.OLS(y, X).fit()
@@ -127,28 +130,19 @@ elif mode == "Stats":
     st.text("OLS Regression Results (log-log)")
     st.text(model.summary())
 
-    # Predicción sobre datos nuevos
     st.subheader("📊 Distribución log(PMR) vs log(ingreso per cápita)")
-    fig = px.scatter(df_log, x="log_gdp", y="log_pmr", text="Country",
-                     labels={"log_gdp": "log(Income per capita)", "log_pmr": "log(PMR Score)"},
-                     title="log(PMR) vs log(Income per capita)")
     x_vals = np.linspace(df_log["log_gdp"].min(), df_log["log_gdp"].max(), 100)
-
     X_pred = pd.DataFrame({
         "const": 1.0,
         "log_gdp": x_vals,
         "OECD": df_log["OECD"].mean()
     })
-
     y_vals = model.predict(X_pred)
 
-    fig.add_trace(
-        go.Scatter(
-            x=x_vals, y=y_vals, mode='lines',
-            name='Regresión lineal log-log',
-            line=dict(color='red')
-        )
-    )
+    fig = px.scatter(df_log, x="log_gdp", y="log_pmr", text="Country",
+                     labels={"log_gdp": "log(Income per capita)", "log_pmr": "log(PMR Score)"},
+                     title="log(PMR) vs log(Income per capita)")
+    fig.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', name='Regresión lineal log-log', line=dict(color='red')))
     fig.update_traces(textposition='top center')
     st.plotly_chart(fig)
 
