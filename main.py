@@ -94,10 +94,14 @@ if mode == "Guided simulation":
     df_simulated = df.copy()
     df_simulated.loc[df_simulated["Country"] == selected_country, medium_level_indicators] = simulated_row[medium_level_indicators]
     df_simulated["PMR_simulated"] = df_simulated[medium_level_indicators].mean(axis=1)
-    # Asegurarse de excluir NaN antes de rankear
     valid_simulated = df_simulated[df_simulated["PMR_simulated"].notna()].copy()
     valid_simulated["rank_simulated"] = valid_simulated["PMR_simulated"].rank(method="min")
-    new_rank = int(valid_simulated[valid_simulated["Country"] == selected_country]["rank_simulated"].values[0])
+    if selected_country in valid_simulated["Country"].values:
+        new_rank = int(valid_simulated.loc[valid_simulated["Country"] == selected_country, "rank_simulated"].values[0])
+        st.metric("Simulated Rank", f"{new_rank}")
+    else:
+        st.warning("⚠️ Could not compute rank: missing or invalid simulated data for this country.")
+
 
     st.write("---")
     col4, col5, col6 = st.columns(3)
