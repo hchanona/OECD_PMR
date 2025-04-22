@@ -33,7 +33,7 @@ st.sidebar.write("This section provides the analysis of PMR trends, including re
 
 # Modo de navegación
 st.sidebar.header("Navigation Mode")
-mode = st.sidebar.radio("Choose simulation mode:", ["Optimized", "Autonomous (hierarchical)"])
+mode = st.sidebar.radio("Choose mode:", ["Optimized simulation", "Autonomous (hierarchical) simulation", "PMR Analysis"])
 
 # Selección del país
 countries = df["Country"].tolist()
