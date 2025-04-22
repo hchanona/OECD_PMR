@@ -114,10 +114,12 @@ elif mode == "Stats":
     Los coeficientes se interpretan como **elasticidades** o diferencias porcentuales aproximadas.
     """)
 
+    # Preparar datos
     df_log = df[(df["PMR_2023"] > 0) & (df["GDP_PCAP_2023"] > 0)].copy()
     df_log["log_pmr"] = np.log(df_log["PMR_2023"])
     df_log["log_gdp"] = np.log(df_log["GDP_PCAP_2023"])
 
+    # Entrenamiento del modelo
     X = sm.add_constant(df_log[["log_gdp", "OECD"]])
     y = df_log["log_pmr"]
     model = sm.OLS(y, X).fit()
@@ -125,19 +127,28 @@ elif mode == "Stats":
     st.text("OLS Regression Results (log-log)")
     st.text(model.summary())
 
+    # Predicción sobre datos nuevos
     st.subheader("📊 Distribución log(PMR) vs log(ingreso per cápita)")
     fig = px.scatter(df_log, x="log_gdp", y="log_pmr", text="Country",
                      labels={"log_gdp": "log(Income per capita)", "log_pmr": "log(PMR Score)"},
                      title="log(PMR) vs log(Income per capita)")
     x_vals = np.linspace(df_log["log_gdp"].min(), df_log["log_gdp"].max(), 100)
-    X_pred = sm.add_constant(pd.DataFrame({
-    "log_gdp": x_vals,
-    "OECD": np.repeat(df_log["OECD"].mean(), len(x_vals))}))
 
+    X_pred = pd.DataFrame({
+        "const": 1.0,
+        "log_gdp": x_vals,
+        "OECD": df_log["OECD"].mean()
+    })
 
     y_vals = model.predict(X_pred)
 
-    fig.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', name='Regresión lineal log-log', line=dict(color='red')))
+    fig.add_trace(
+        go.Scatter(
+            x=x_vals, y=y_vals, mode='lines',
+            name='Regresión lineal log-log',
+            line=dict(color='red')
+        )
+    )
     fig.update_traces(textposition='top center')
     st.plotly_chart(fig)
 
