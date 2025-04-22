@@ -160,6 +160,23 @@ y = y[X.index]
 # Realizar la regresión
 model = sm.OLS(y, X).fit()
 
+# Calculate the regression line for the scatter plot
+slope_gdp = model.params['GDP_PCAP_2023']
+slope_oecd = model.params['OECD']
+intercept = model.params['const']
+
+# Plot the scatter plot of PMR vs GDP per capita
+fig = px.scatter(df, x="GDP_PCAP_2023", y="PMR_2023", text="Country", title="PMR vs Income per Capita", labels={"GDP_PCAP_2023": "Income per capita (PPP)", "PMR_2023": "PMR Score"})
+fig.update_traces(textposition='top center')
+
+# Adding the regression line
+x_values = np.linspace(df["GDP_PCAP_2023"].min(), df["GDP_PCAP_2023"].max(), 100)
+y_values = intercept + slope_gdp * x_values + slope_oecd * 0  # assuming OECD membership is 0 for line calculation
+fig.add_traces(go.Scatter(x=x_values, y=y_values, mode='lines', name='Regression Line', line=dict(color='red', dash='dash')))
+
+# Show the plot
+st.plotly_chart(fig)
+
 # Mostrar resumen de los resultados de la regresión
 st.write(model.summary())
 
@@ -167,5 +184,4 @@ st.write(model.summary())
 st.subheader("📊 Distribución de PMR vs Ingreso per cápita")
 fig = px.scatter(df, x="GDP_PCAP_2023", y="PMR_2023", text="Country", title="PMR vs Income per Capita", labels={"GDP_PCAP_2023": "Income per capita (PPP)", "PMR_2023": "PMR Score"})
 fig.update_traces(textposition='top center')
-st.plotly_chart(fig)
 
