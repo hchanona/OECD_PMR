@@ -27,21 +27,26 @@ medium_level_indicators = [
 
 low_level_indicators = [col for col in df.columns if col not in ["Country", "OECD", "GDP_PCAP_2023", "PMR_2023"] + medium_level_indicators]
 
-# Sidebar - Sección de simulación
-st.sidebar.header("Simulation")
+# Sidebar - Sección PMR Analysis
+st.sidebar.header("PMR Analysis")
+st.sidebar.write("This section provides the analysis of PMR trends, including regression and comparison.")
+
+# Modo de navegación
+st.sidebar.header("Navigation Mode")
 mode = st.sidebar.radio("Choose simulation mode:", ["Optimized", "Autonomous (hierarchical)"])
 
+# Selección del país
 countries = df["Country"].tolist()
 selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Chile") if "Chile" in countries else 0)
 
-# Mostrar PMR Score y GDP
+# Obtener los puntajes de PMR y GDP para el país seleccionado
 pmr_score = df[df["Country"] == selected_country]["PMR_2023"].values[0]
 gdp_score = df[df["Country"] == selected_country]["GDP_PCAP_2023"].values[0]
 
-# Percentil global
+# Cálculo del percentil global
 global_pct = (df["PMR_2023"] > pmr_score).mean() * 100
 
-# Columna para PMR, GDP y Percentil
+# Mostrar las métricas principales
 col1, col2 = st.columns(2)
 with col1:
     st.metric(label=f"{selected_country} PMR Score", value=round(pmr_score, 3))
@@ -51,7 +56,7 @@ with col2:
     st.metric(label='OECD Average PMR', value=round(oecd_avg, 3), help='Average PMR for OECD countries')
     st.metric(label='Non-OECD Average PMR', value=round(non_oecd_avg, 3), help='Average PMR for Non-OECD countries')
 
-# Radar chart: Comparación país vs promedio OCDE
+# Gráfico radar de la comparación entre el país seleccionado y el promedio de OCDE
 st.subheader("📊 PMR Profile: Country vs OECD Average (Medium-level indicators)")
 row = df[df["Country"] == selected_country].iloc[0]
 oecd_avg = df[df["OECD"] == 1][medium_level_indicators].mean()
@@ -135,12 +140,12 @@ if mode == "Optimized":
 else:
     st.info("Hierarchical simulation mode coming soon.")
 
-# Apartado "PMR Trends" separado
-st.markdown('### 📈 PMR Trends')
+# Apartado "PMR Trends" en el sidebar
+st.sidebar.markdown('### 📈 PMR Trends')
 
 # Modo de regresión
-st.subheader("🔎 PMR Score vs. GDP per capita & OECD Membership")
-st.write("""
+st.sidebar.subheader("🔎 PMR Score vs. GDP per capita & OECD Membership")
+st.sidebar.write("""
 Este análisis estudia cómo el **ingreso per cápita** y la **pertenencia a la OCDE** afectan el **puntaje PMR** de un país.
 """)
 
@@ -153,12 +158,12 @@ y = df["PMR_2023"]  # Variable dependiente
 model = sm.OLS(y, X).fit()
 
 # Mostrar resumen de los resultados de la regresión
-st.write(model.summary())
+st.sidebar.write(model.summary())
 
 # Sección de análisis gráfico
-st.subheader("📊 Distribución de PMR vs Ingreso per cápita")
+st.sidebar.subheader("📊 Distribución de PMR vs Ingreso per cápita")
 fig = px.scatter(df, x="GDP_PCAP_2023", y="PMR_2023", text="Country", title="PMR vs Income per Capita", labels={"GDP_PCAP_2023": "Income per capita (PPP)", "PMR_2023": "PMR Score"})
 fig.update_traces(textposition='top center')
-st.plotly_chart(fig)
+st.sidebar.plotly_chart(fig)
 
 
