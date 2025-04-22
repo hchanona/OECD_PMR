@@ -29,13 +29,22 @@ medium_level_indicators = [
 
 low_level_indicators = [col for col in df.columns if col not in ["Country", "OECD", "GDP_PCAP_2023", "PMR_2023"] + medium_level_indicators]
 
-# Sidebar: modo y país
+# === SIDEBAR ===
+
+# Modo de simulación
 st.sidebar.header("Navigation Mode")
 mode = st.sidebar.radio("Choose simulation mode:", ["Optimized", "Autonomous (hierarchical)"])
+
+# Modo de análisis
+st.sidebar.header("Statistical analysis")
+analysis_mode = st.sidebar.radio("Show regression?", ["None", "Analysis"])
+
+# Selección de país
 countries = df["Country"].tolist()
 selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Chile") if "Chile" in countries else 0)
 
-# Datos base del país seleccionado
+# === MÉTRICAS DEL PAÍS SELECCIONADO ===
+
 row = df[df["Country"] == selected_country].iloc[0]
 pmr_score = row["PMR_2023"]
 gdp_score = row["GDP_PCAP_2023"]
@@ -50,7 +59,8 @@ with col2:
     st.metric(label='OECD Average PMR', value=round(oecd_avg, 3))
     st.metric(label='Non-OECD Average PMR', value=round(non_oecd_avg, 3))
 
-# Radar chart
+# === RADAR CHART ===
+
 st.subheader("📊 PMR Profile: Country vs OECD Average (Medium-level indicators)")
 oecd_avg_vals = df[df["OECD"] == 1][medium_level_indicators].mean()
 country_vals = row[medium_level_indicators]
@@ -61,7 +71,8 @@ radar_fig.add_trace(go.Scatterpolar(r=oecd_avg_vals.values, theta=medium_level_i
 radar_fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0,6])), showlegend=True)
 st.plotly_chart(radar_fig, use_container_width=True)
 
-# Modo Optimizado
+# === SIMULACIÓN ===
+
 if mode == "Optimized":
     st.subheader("🔎 Regulatory Subcomponent Overview – Current Position by Percentile")
     summary = []
@@ -104,32 +115,40 @@ if mode == "Optimized":
         st.metric("Simulated PMR Estimate", round(new_medium_avg, 3), delta=round(new_medium_avg - original_medium, 3))
     with col6:
         st.metric("Simulated Percentile", f"{round(new_percentile)}%")
+
 else:
     st.info("Hierarchical simulation mode coming soon.")
 
-# PMR Trends
-st.header("📈 PMR Trends")
+# === ANÁLISIS ECONOMÉTRICO (SOLO SI SE SELECCIONA) ===
 
-st.subheader("🔎 PMR Score vs. GDP per capita & OECD Membership")
-st.write("""Este análisis estudia cómo el **ingreso per cápita** y la **pertenencia a la OCDE** afectan el **puntaje PMR** de un país.""")
+if analysis_mode == "Analysis":
+    st.header("📈 PMR Trends")
 
-X = df[["GDP_PCAP_2023", "OECD"]]
-y = df["PMR_2023"]
-poly = PolynomialFeatures(degree=2)
-X_poly = poly.fit_transform(X)
-model = sm.OLS(y, X_poly).fit()
+    st.subheader("🔎 PMR Score vs. GDP per capita (log-log) & OECD Membership")
+    st.write("""
+    Este análisis examina cómo el **ingreso per cápita (logarítmico)** y la **pertenencia a la OCDE** afectan el **logaritmo del PMR**. 
+    Los coeficientes se interpretan como **elasticidades** o diferencias porcentuales aproximadas.
+    """)
 
-st.text("OLS Regression Results")
-st.text(model.summary())
+    df_log = df[(df["PMR_2023"] > 0) & (df["GDP_PCAP_2023"] > 0)].copy()
+    df_log["log_pmr"] = np.log(df_log["PMR_2023"])
+    df_log["log_gdp"] = np.log(df_log["GDP_PCAP_2023"])
 
-st.subheader("📊 Distribución de PMR vs Ingreso per cápita con Línea de Regresión")
-fig = px.scatter(df, x="GDP_PCAP_2023", y="PMR_2023", text="Country", title="PMR vs Income per Capita", labels={"GDP_PCAP_2023": "Income per capita (PPP)", "PMR_2023": "PMR Score"})
-fig.update_traces(textposition='top center')
+    X = sm.add_constant(df_log[["log_gdp", "OECD"]])
+    y = df_log["log_pmr"]
+    model = sm.OLS(y, X).fit()
 
-x_vals = np.linspace(df["GDP_PCAP_2023"].min(), df["GDP_PCAP_2023"].max(), 100).reshape(-1, 1)
-x_input = np.hstack([x_vals, np.full_like(x_vals, df["OECD"].mean())])
-x_poly_vals = poly.transform(x_input)
-y_vals = model.predict(x_poly_vals)
+    st.text("OLS Regression Results (log-log)")
+    st.text(model.summary())
 
-fig.add_trace(go.Scatter(x=x_vals.flatten(), y=y_vals, mode='lines', name='Regresión cuadrática', line=dict(color='red', dash='dash')))
-st.plotly_chart(fig)
+    st.subheader("📊 Distribución log(PMR) vs log(ingreso per cápita)")
+    fig = px.scatter(df_log, x="log_gdp", y="log_pmr", text="Country",
+                     labels={"log_gdp": "log(Income per capita)", "log_pmr": "log(PMR Score)"},
+                     title="log(PMR) vs log(Income per capita)")
+    x_vals = np.linspace(df_log["log_gdp"].min(), df_log["log_gdp"].max(), 100)
+    X_pred = sm.add_constant(pd.DataFrame({"log_gdp": x_vals, "OECD": df_log["OECD"].mean()}))
+    y_vals = model.predict(X_pred)
+
+    fig.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', name='Regresión lineal log-log', line=dict(color='red')))
+    fig.update_traces(textposition='top center')
+    st.plotly_chart(fig)
