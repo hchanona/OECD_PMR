@@ -27,26 +27,21 @@ medium_level_indicators = [
 
 low_level_indicators = [col for col in df.columns if col not in ["Country", "OECD", "GDP_PCAP_2023", "PMR_2023"] + medium_level_indicators]
 
-# Sección PMR Analysis
-st.sidebar.header("PMR Analysis")
-st.sidebar.write("This section provides the analysis of PMR trends, including regression and comparison.")
-
-# Modo de navegación
-st.sidebar.header("Navigation Mode")
+# Sidebar - Sección de simulación
+st.sidebar.header("Simulation")
 mode = st.sidebar.radio("Choose simulation mode:", ["Optimized", "Autonomous (hierarchical)"])
 
-# Selección del país
 countries = df["Country"].tolist()
 selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Chile") if "Chile" in countries else 0)
 
-# Obtener los puntajes de PMR y GDP para el país seleccionado
+# Mostrar PMR Score y GDP
 pmr_score = df[df["Country"] == selected_country]["PMR_2023"].values[0]
 gdp_score = df[df["Country"] == selected_country]["GDP_PCAP_2023"].values[0]
 
-# Cálculo del percentil global
+# Percentil global
 global_pct = (df["PMR_2023"] > pmr_score).mean() * 100
 
-# Mostrar las métricas principales
+# Columna para PMR, GDP y Percentil
 col1, col2 = st.columns(2)
 with col1:
     st.metric(label=f"{selected_country} PMR Score", value=round(pmr_score, 3))
@@ -56,7 +51,7 @@ with col2:
     st.metric(label='OECD Average PMR', value=round(oecd_avg, 3), help='Average PMR for OECD countries')
     st.metric(label='Non-OECD Average PMR', value=round(non_oecd_avg, 3), help='Average PMR for Non-OECD countries')
 
-# Gráfico radar de la comparación entre el país seleccionado y el promedio de OCDE
+# Radar chart: Comparación país vs promedio OCDE
 st.subheader("📊 PMR Profile: Country vs OECD Average (Medium-level indicators)")
 row = df[df["Country"] == selected_country].iloc[0]
 oecd_avg = df[df["OECD"] == 1][medium_level_indicators].mean()
