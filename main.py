@@ -4,6 +4,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import statsmodels.api as sm
+from sklearn.preprocessing import PolynomialFeatures
 
 st.set_page_config(page_title="PMR Sandbox (unofficial)", layout="wide")
 st.title("PMR Sandbox (unofficial)")
@@ -28,7 +29,7 @@ medium_level_indicators = [
 low_level_indicators = [col for col in df.columns if col not in ["Country", "OECD", "GDP_PCAP_2023", "PMR_2023"] + medium_level_indicators]
 
 st.sidebar.header("Navigation Mode")
-mode = st.sidebar.radio("Choose simulation mode:", ["Optimized"])
+mode = st.sidebar.radio("Choose simulation mode:", ["Optimized", "Autonomous (hierarchical)"])
 
 countries = df["Country"].tolist()
 selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Chile") if "Chile" in countries else 0)
@@ -111,9 +112,6 @@ if mode == "Optimized":
     for ind, val in sliders.items():
         simulated_row[ind] = val
 
-    # Convertir a numérico y coaccionar valores no numéricos
-    simulated_row[medium_level_indicators] = simulated_row[medium_level_indicators].apply(pd.to_numeric, errors='coerce')
-
     # Recalcular PMR simulado para todos los países
     df["PMR_simulated"] = df[medium_level_indicators].mean(axis=1)
     
@@ -135,53 +133,34 @@ if mode == "Optimized":
 else:
     st.info("Hierarchical simulation mode coming soon.")
 
-# Apartado "PMR Trends" separado
-st.sidebar.header("📈 PMR Trends")
+# Apartado "PMR Trends" separado en sidebar
+st.sidebar.markdown('### 📈 PMR Trends')
 
-# Modo de regresión
-st.subheader("🔎 PMR Score vs. GDP per capita & OECD Membership")
-st.write(""" 
-Este análisis estudia cómo el **ingreso per cápita** y la **pertenencia a la OCDE** afectan el **puntaje PMR** de un país.
-""")
+# Modo de regresión no lineal (polinómica)
+st.sidebar.subheader("🔎 PMR Score vs. GDP per capita & OECD Membership")
+st.sidebar.write("""Este análisis estudia cómo el **ingreso per cápita** y la **pertenencia a la OCDE** afectan el **puntaje PMR** de un país.""")
 
-# Preparar las variables para la regresión
+# Preparar las variables para la regresión cuadrática (polinómica)
 X = df[["GDP_PCAP_2023", "OECD"]]  # Variables independientes
-X = sm.add_constant(X)  # Añadir constante (intercepto)
-y = df["PMR_2023"]  # Variable dependiente
-
-# Convertir a numérico y coaccionar valores no numéricos
-X = X.apply(pd.to_numeric, errors='coerce')
-y = pd.to_numeric(y, errors='coerce')
-
-# Eliminar NaN si existen
-X = X.dropna()
-y = y[X.index]
+poly = PolynomialFeatures(degree=2)  # Agregar términos cuadráticos
+X_poly = poly.fit_transform(X)
 
 # Realizar la regresión
-model = sm.OLS(y, X).fit()
-
-# Calculate the regression line for the scatter plot
-slope_gdp = model.params['GDP_PCAP_2023']
-slope_oecd = model.params['OECD']
-intercept = model.params['const']
-
-# Plot the scatter plot of PMR vs GDP per capita
-fig = px.scatter(df, x="GDP_PCAP_2023", y="PMR_2023", text="Country", title="PMR vs Income per Capita", labels={"GDP_PCAP_2023": "Income per capita (PPP)", "PMR_2023": "PMR Score"})
-fig.update_traces(textposition='top center')
-
-# Adding the regression line
-x_values = np.linspace(df["GDP_PCAP_2023"].min(), df["GDP_PCAP_2023"].max(), 100)
-y_values = intercept + slope_gdp * x_values + slope_oecd * 0  # assuming OECD membership is 0 for line calculation
-fig.add_traces(go.Scatter(x=x_values, y=y_values, mode='lines', name='Regression Line', line=dict(color='red', dash='dash')))
-
-# Show the plot
-st.plotly_chart(fig)
+model = sm.OLS(y, X_poly).fit()
 
 # Mostrar resumen de los resultados de la regresión
-st.write(model.summary())
+st.sidebar.write(model.summary())
 
-# Sección de análisis gráfico
-st.subheader("📊 Distribución de PMR vs Ingreso per cápita")
+# Sección de análisis gráfico con línea de regresión
+st.sidebar.subheader("📊 Distribución de PMR vs Ingreso per cápita con Línea de Regresión")
 fig = px.scatter(df, x="GDP_PCAP_2023", y="PMR_2023", text="Country", title="PMR vs Income per Capita", labels={"GDP_PCAP_2023": "Income per capita (PPP)", "PMR_2023": "PMR Score"})
 fig.update_traces(textposition='top center')
 
+# Agregar la línea de regresión cuadrática
+x_vals = np.linspace(df["GDP_PCAP_2023"].min(), df["GDP_PCAP_2023"].max(), 100).reshape(-1, 1)
+x_poly_vals = poly.transform(x_vals)
+y_vals = model.predict(x_poly_vals)
+
+fig.add_trace(go.Scatter(x=x_vals.flatten(), y=y_vals, mode='lines', name='Regresión cuadrática', line=dict(color='red', dash='dash')))
+
+st.sidebar.plotly_chart(fig)
