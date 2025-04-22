@@ -29,7 +29,7 @@ low_level_indicators = [col for col in df.columns if col not in ["Country", "OEC
 
 # Selección del modo de navegación
 st.sidebar.header("Navigation Mode")
-mode = st.sidebar.radio("Choose simulation mode:", ["Optimized"])
+mode = st.sidebar.radio("Choose simulation mode:", ["Optimized", "Autonomous (hierarchical)"])
 
 # Selección del país
 countries = df["Country"].tolist()
