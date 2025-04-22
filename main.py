@@ -33,7 +33,7 @@ st.sidebar.write("This section provides the analysis of PMR trends, including re
 
 # Modo de navegación
 st.sidebar.header("Navigation Mode")
-mode = st.sidebar.radio("Choose mode:", ["Optimized simulation", "Autonomous (hierarchical) simulation", "PMR Analysis"])
+mode = st.sidebar.radio("Choose simulation mode:", ["Optimized", "Autonomous (hierarchical)"])
 
 # Selección del país
 countries = df["Country"].tolist()
@@ -165,5 +165,4 @@ st.sidebar.subheader("📊 Distribución de PMR vs Ingreso per cápita")
 fig = px.scatter(df, x="GDP_PCAP_2023", y="PMR_2023", text="Country", title="PMR vs Income per Capita", labels={"GDP_PCAP_2023": "Income per capita (PPP)", "PMR_2023": "PMR Score"})
 fig.update_traces(textposition='top center')
 st.sidebar.plotly_chart(fig)
-
 
