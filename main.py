@@ -28,17 +28,14 @@ medium_level_indicators = [
 low_level_indicators = [col for col in df.columns if col not in ["Country", "OECD", "GDP_PCAP_2023", "PMR_2023"] + medium_level_indicators]
 
 # === SIDEBAR ===
-st.sidebar.header("Navigation Mode")
-mode = st.sidebar.radio("Choose simulation mode:", ["Optimized", "Autonomous (hierarchical)"])
-
-st.sidebar.header("Statistical analysis")
-analysis_active = st.sidebar.checkbox("Analysis")  # Solo True o False
+st.sidebar.header("Options")
+mode = st.sidebar.radio("What do you want to do?", ["Guided simulation", "Autonomous simulation", "Stats"])
 
 countries = df["Country"].tolist()
 selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Chile") if "Chile" in countries else 0)
 
-# === BLOQUE PRINCIPAL DE SIMULACIÓN (si no estás en análisis) ===
-if not analysis_active:
+# === MODO: GUIDED SIMULATION ===
+if mode == "Guided simulation":
     row = df[df["Country"] == selected_country].iloc[0]
     pmr_score = row["PMR_2023"]
 
@@ -51,7 +48,6 @@ if not analysis_active:
         st.metric(label='OECD Average PMR', value=round(oecd_avg, 3))
         st.metric(label='Non-OECD Average PMR', value=round(non_oecd_avg, 3))
 
-    # Radar chart
     st.subheader("📊 PMR Profile: Country vs OECD Average (Medium-level indicators)")
     oecd_avg_vals = df[df["OECD"] == 1][medium_level_indicators].mean()
     country_vals = row[medium_level_indicators]
@@ -62,55 +58,54 @@ if not analysis_active:
     radar_fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0,6])), showlegend=True)
     st.plotly_chart(radar_fig, use_container_width=True)
 
-    # Simulación optimizada
-    if mode == "Optimized":
-        st.subheader("🔎 Regulatory Subcomponent Overview – Current Position by Percentile")
-        summary = []
-        for ind in low_level_indicators:
-            score = row[ind]
-            percentile = (df[ind] > score).mean() * 100
-            level = "🔴 High" if percentile > 90 else "🟠 Medium" if percentile > 50 else "🟢 Low"
-            summary.append({"Indicator": ind, "Score": round(score, 2), "Percentile": round(percentile), "Level": level})
+    st.subheader("🔎 Regulatory Subcomponent Overview – Current Position by Percentile")
+    summary = []
+    for ind in low_level_indicators:
+        score = row[ind]
+        percentile = (df[ind] > score).mean() * 100
+        level = "🔴 High" if percentile > 90 else "🟠 Medium" if percentile > 50 else "🟢 Low"
+        summary.append({"Indicator": ind, "Score": round(score, 2), "Percentile": round(percentile), "Level": level})
 
-        df_summary = pd.DataFrame(summary).sort_values("Percentile", ascending=False)
-        st.dataframe(df_summary.reset_index(drop=True), use_container_width=True)
+    df_summary = pd.DataFrame(summary).sort_values("Percentile", ascending=False)
+    st.dataframe(df_summary.reset_index(drop=True), use_container_width=True)
 
-        st.subheader("📌 Suggested Reform Priorities")
-        top3 = df_summary.head(3)["Indicator"].tolist()
+    st.subheader("📌 Suggested Reform Priorities")
+    top3 = df_summary.head(3)["Indicator"].tolist()
 
-        sliders = {}
-        for ind in top3:
-            current = row[ind]
-            percentile = (df[ind] > current).mean() * 100
-            st.markdown(f"**{ind}**\n\nCurrent score: {round(current,2)} | Percentile: {round(percentile)}%")
-            sliders[ind] = st.slider(ind, 0.0, 6.0, float(current), 0.1)
+    sliders = {}
+    for ind in top3:
+        current = row[ind]
+        percentile = (df[ind] > current).mean() * 100
+        st.markdown(f"**{ind}**\n\nCurrent score: {round(current,2)} | Percentile: {round(percentile)}%")
+        sliders[ind] = st.slider(ind, 0.0, 6.0, float(current), 0.1)
 
-        simulated_row = row.copy()
-        for ind, val in sliders.items():
-            simulated_row[ind] = val
+    simulated_row = row.copy()
+    for ind, val in sliders.items():
+        simulated_row[ind] = val
 
-        new_medium_avg = simulated_row[medium_level_indicators].mean()
-        original_medium = row[medium_level_indicators].mean()
+    new_medium_avg = simulated_row[medium_level_indicators].mean()
+    original_medium = row[medium_level_indicators].mean()
 
-        df_simulated = df.copy()
-        df_simulated.loc[df_simulated["Country"] == selected_country, medium_level_indicators] = simulated_row[medium_level_indicators]
-        df_simulated["PMR_simulated"] = df_simulated[medium_level_indicators].mean(axis=1)
-        new_percentile = (df_simulated["PMR_simulated"] > new_medium_avg).mean() * 100
+    df_simulated = df.copy()
+    df_simulated.loc[df_simulated["Country"] == selected_country, medium_level_indicators] = simulated_row[medium_level_indicators]
+    df_simulated["PMR_simulated"] = df_simulated[medium_level_indicators].mean(axis=1)
+    new_percentile = (df_simulated["PMR_simulated"] > new_medium_avg).mean() * 100
 
-        st.write("---")
-        col4, col5, col6 = st.columns(3)
-        with col4:
-            st.metric("Original PMR Estimate", round(original_medium, 3))
-        with col5:
-            st.metric("Simulated PMR Estimate", round(new_medium_avg, 3), delta=round(new_medium_avg - original_medium, 3))
-        with col6:
-            st.metric("Simulated Percentile", f"{round(new_percentile)}%")
+    st.write("---")
+    col4, col5, col6 = st.columns(3)
+    with col4:
+        st.metric("Original PMR Estimate", round(original_medium, 3))
+    with col5:
+        st.metric("Simulated PMR Estimate", round(new_medium_avg, 3), delta=round(new_medium_avg - original_medium, 3))
+    with col6:
+        st.metric("Simulated Percentile", f"{round(new_percentile)}%")
 
-    elif mode == "Autonomous (hierarchical)":
-        st.info("Hierarchical simulation mode coming soon.")
+# === MODO: AUTONOMOUS SIMULATION ===
+elif mode == "Autonomous simulation":
+    st.info("🧭 Autonomous simulation mode coming soon. Stay tuned!")
 
-# === BLOQUE DE ANÁLISIS ECONOMÉTRICO ===
-if analysis_active:
+# === MODO: STATS ===
+elif mode == "Stats":
     st.header("📈 PMR Trends")
 
     st.subheader("🔎 PMR Score vs. GDP per capita (log-log) & OECD Membership")
