@@ -36,7 +36,8 @@ selected_country = st.sidebar.selectbox("Select a country", countries, index=cou
 
 # === MODO: SIMULACIÓN GUIADA ===
 if mode == "Guided simulation":
-    row = df[df["Country"] == selected_country].iloc[0]
+    selected_country_clean = selected_country.strip().lower()
+    row = df[df["Country_clean"] == selected_country_clean].iloc[0]
     pmr_score = row["PMR_2023"]
 
     col1, col2 = st.columns(2)
@@ -64,7 +65,7 @@ if mode == "Guided simulation":
     summary = []
     for ind in low_level_indicators:
         score = row[ind]
-        rank = int(rank_df[df["Country"] == selected_country][ind])
+        rank = int(rank_df[df["Country_clean"] == selected_country_clean][ind])
         summary.append({"Indicator": ind, "Score": round(score, 2), "Rank": rank})
 
     df_summary = pd.DataFrame(summary).sort_values("Rank")
@@ -76,7 +77,7 @@ if mode == "Guided simulation":
     sliders = {}
     for ind in top3:
         current = row[ind]
-        rank = int(rank_df[df["Country"] == selected_country][ind])
+        rank = int(rank_df[df["Country_clean"] == selected_country_clean][ind])
         st.markdown(f"**{ind}**\n\nCurrent score: {round(current,2)} | Rank: {rank}")
         sliders[ind] = st.slider(ind, 0.0, 6.0, float(current), 0.1)
 
@@ -84,30 +85,25 @@ if mode == "Guided simulation":
     for ind, val in sliders.items():
         simulated_row[ind] = val
 
-    # Cambios aplicados: recalcular medium-level indicators si hubo cambios
-    has_changes = any(row[ind] != val for ind, val in sliders.items())
-
-    if has_changes:
-        for medium in medium_level_indicators:
-            subcomponents = [col for col in low_level_indicators if col in df.columns and (col in medium or medium in col)]
-            if subcomponents:
-                simulated_row[medium] = simulated_row[subcomponents].mean()
+    # Recalcular medium-level indicators
+    for medium_clean in medium_level_indicators_clean:
+        subcomponents = related_subcomponents(medium_clean)
+        if subcomponents:
+            original_medium = medium_map[medium_clean]
+            simulated_row[original_medium] = simulated_row[subcomponents].mean()
 
     new_medium_avg = simulated_row[medium_level_indicators].mean()
     original_medium = row[medium_level_indicators].mean()
 
-    # Reemplazar valores en df_simulated
     df_simulated = df.copy()
-    df_simulated.loc[df_simulated["Country"] == selected_country, low_level_indicators + medium_level_indicators] = simulated_row[low_level_indicators + medium_level_indicators]
+    df_simulated.loc[df_simulated["Country_clean"] == selected_country_clean, low_level_indicators + medium_level_indicators] = simulated_row[low_level_indicators + medium_level_indicators]
     df_simulated["PMR_simulated"] = df_simulated[medium_level_indicators].mean(axis=1)
-
     valid_simulated = df_simulated[df_simulated["PMR_simulated"].notna()].copy()
     valid_simulated["rank_simulated"] = valid_simulated["PMR_simulated"].rank(method="min")
 
     new_rank = None
-    if selected_country in valid_simulated["Country"].values:
-        new_rank = int(valid_simulated.loc[valid_simulated["Country"] == selected_country, "rank_simulated"].values[0])
-        st.metric("Simulated Rank", f"{new_rank}")
+    if selected_country_clean in valid_simulated["Country_clean"].values:
+        new_rank = int(valid_simulated.loc[valid_simulated["Country_clean"] == selected_country_clean, "rank_simulated"].values[0])
     else:
         st.warning("⚠️ Could not compute rank: missing or invalid simulated data for this country.")
 
@@ -118,10 +114,8 @@ if mode == "Guided simulation":
     with col5:
         st.metric("Simulated PMR Estimate", round(new_medium_avg, 3), delta=round(new_medium_avg - original_medium, 3))
     with col6:
-        if new_rank is not None:
-            st.metric("Simulated Rank", f"{int(new_rank)}")
-        else:
-            st.metric("Simulated Rank", "N/A")
+        st.metric("Simulated Rank", f"{new_rank}" if new_rank is not None else "N/A")
+
 
 elif mode == "Autonomous simulation":
     st.subheader("🧭 Autonomous Simulation – Choose Reform Areas Hierarchically")
