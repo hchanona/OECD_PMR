@@ -310,7 +310,7 @@ elif mode == "Stats":
     st.markdown(f"**{selected_country}** — PMR actual: **{round(current_pmr, 2)}**, PIB PPC actual: **${round(current_gdp):,} USD**")
 
     # Slider: mejora en PMR (% reducción)
-    pct_reduction = st.slider("% de reducción en el PMR", 0, 50, 10)
+    pct_reduction = st.slider("% de reducción en el PMR", 0, 20, 10)
     new_pmr = current_pmr * (1 - pct_reduction / 100)
 
     # Calcular log-pmr antes y después
