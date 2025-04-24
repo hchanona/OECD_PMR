@@ -114,6 +114,11 @@ if mode == "Guided simulation":
     col1, col2 = st.columns(2)
     with col1:
         st.metric(label=f"{selected_country} PMR Score", value=round(pmr_score, 3))
+        # Rank global (entre todos los países)
+        global_rank_series = df["PMR_2023"].rank(method="min").astype(int)
+        global_rank = int(global_rank_series[df["Country_clean"] == selected_country_clean])
+        st.metric(label="Rank among all countries", value=f"{global_rank} of {len(df)}")
+
     with col2:
         oecd_avg = df[df['OECD'] == 1]['PMR_2023'].mean()
         non_oecd_avg = df[df['OECD'] == 0]['PMR_2023'].mean()
