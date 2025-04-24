@@ -105,6 +105,28 @@ mode = st.sidebar.radio("What do you want to simulate?", ["Relative ranking", "I
 countries = df["Country"].tolist()
 selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Australia") if "Australia" in countries else 0)
 
+st.sidebar.markdown("""---""")
+st.sidebar.markdown("""
+### ℹ️ What is the PMR Sandbox?
+
+This tool allows you to explore and simulate the OECD’s **Product Market Regulation (PMR)** indicators.
+
+You can:
+- 🧭 **Compare** your country's regulatory profile with OECD and non-OECD averages,
+- 📉 **Simulate reforms** to observe changes in your **PMR ranking**,
+- 📈 **Estimate the economic impact** of better regulation on **GDP per capita (PPP)**.
+
+The **PMR score ranges from 0 to 6**, where:
+- **0** = least restrictive (best regulatory environment),
+- **6** = most restrictive.
+
+Lower scores are **better** — they indicate fewer regulatory barriers to competition and market access.
+
+Data source: **OECD PMR 2023–2024**.
+""")
+
+
+
 # === MODO: SIMULACIÓN GUIADA ===
 if mode == "Relative ranking":
     selected_country_clean = selected_country.strip().lower()
