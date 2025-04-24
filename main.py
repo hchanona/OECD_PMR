@@ -167,8 +167,7 @@ if mode == "Guided simulation":
     original_medium = row[medium_level_indicators].mean()
 
     df_simulated = df.copy()
-    df_simulated.loc[df_simulated["Country_clean"] == selected_country_clean, low_level_indicators + medium_level_indicators] = simulated_row[low_level_indicators + medium_level_indicators]
-    df_simulated["PMR_simulated"] = df_simulated[medium_level_indicators].mean(axis=1)
+    df_simulated.loc[df_simulated["Country_clean"] == selected_country_clean, low_level_indicators + medium_level_indicators + high_level_indicators + ["PMR_simulated"]] = simulated_row[low_level_indicators + medium_level_indicators + high_level_indicators + ["PMR_simulated"]]
     valid_simulated = df_simulated[df_simulated["PMR_simulated"].notna()].copy()
     valid_simulated["rank_simulated"] = valid_simulated["PMR_simulated"].rank(method="min")
 
