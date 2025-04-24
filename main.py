@@ -1,4 +1,3 @@
-# === CONFIGURACIÓN INICIAL ===
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -17,8 +16,9 @@ def load_data():
     return df
 
 df = load_data()
-st.write(f"🌍 This dataset includes **{df['Country'].nunique()} countries**.")
+st.write(f"\U0001F30D This dataset includes **{df['Country'].nunique()} countries**.")
 
+# === INDICADORES DEFINIDOS ===
 high_level_indicators = [
     "Distortions Induced by State Involvement",
     "Barriers to Domestic and Foreign Entry"
@@ -39,33 +39,6 @@ low_level_indicators = [
     + medium_level_indicators
     + high_level_indicators
 ]
-
-st.sidebar.header("Options")
-mode = st.sidebar.radio("What do you want to do?", ["Guided simulation", "Autonomous simulation", "Stats"])
-countries = df["Country"].tolist()
-selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Australia") if "Australia" in countries else 0)
-
-# === MODO: SIMULACIÓN GUIADA ===
-# === FUNCIÓN DE CÁLCULO COMPLETO DESDE NIVEL BAJO ===
-def compute_full_pmr(row, low_to_medium_map, medium_to_high_map):
-    row = row.copy()
-
-    # Calcular medios desde bajos
-    for medium, lows in low_to_medium_map.items():
-        values = [row[col] for col in lows if pd.notna(row[col])]
-        row[medium] = np.mean(values) if values else np.nan
-
-    # Calcular altos desde medios
-    for high, mediums in medium_to_high_map.items():
-        values = [row[col] for col in mediums if pd.notna(row[col])]
-        row[high] = np.mean(values) if values else np.nan
-
-    # Calcular PMR desde altos
-    high_values = [row[col] for col in medium_to_high_map.keys() if pd.notna(row[col])]
-    row["PMR_simulated"] = np.mean(high_values) if high_values else np.nan
-
-    return row
-
 
 # === MAPEOS DE INDICADORES ===
 low_to_medium_map = {
@@ -106,7 +79,33 @@ medium_to_high_map = {
     ]
 }
 
-# === SIMULACIÓN GUIADA ===
+# === FUNCIÓN DE CÁLCULO COMPLETO DESDE NIVEL BAJO ===
+def compute_full_pmr(row, low_to_medium_map, medium_to_high_map):
+    row = row.copy()
+
+    # Calcular medios desde bajos
+    for medium, lows in low_to_medium_map.items():
+        values = [row[col] for col in lows if pd.notna(row[col])]
+        row[medium] = np.mean(values) if values else np.nan
+
+    # Calcular altos desde medios
+    for high, mediums in medium_to_high_map.items():
+        values = [row[col] for col in mediums if pd.notna(row[col])]
+        row[high] = np.mean(values) if values else np.nan
+
+    # Calcular PMR desde altos (no se requiere mapeo porque son solo 2 componentes fijos)
+    high_values = [row[col] for col in medium_to_high_map.keys() if pd.notna(row[col])]
+    row["PMR_simulated"] = np.mean(high_values) if high_values else np.nan
+
+    return row
+
+# === SIDEBAR ===
+st.sidebar.header("Options")
+mode = st.sidebar.radio("What do you want to do?", ["Guided simulation", "Autonomous simulation", "Stats"])
+countries = df["Country"].tolist()
+selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Australia") if "Australia" in countries else 0)
+
+# === MODO: SIMULACIÓN GUIADA ===
 if mode == "Guided simulation":
     selected_country_clean = selected_country.strip().lower()
     row = df[df["Country_clean"] == selected_country_clean].iloc[0]
@@ -121,7 +120,7 @@ if mode == "Guided simulation":
         st.metric(label='OECD Average PMR', value=round(oecd_avg, 3))
         st.metric(label='Non-OECD Average PMR', value=round(non_oecd_avg, 3))
 
-    st.subheader("📊 PMR Profile: Country vs OECD Average (Medium-level indicators)")
+    st.subheader("\U0001F4CA PMR Profile: Country vs OECD Average (Medium-level indicators)")
     oecd_avg_vals = df[df["OECD"] == 1][medium_level_indicators].mean()
     country_vals = row[medium_level_indicators]
 
@@ -131,7 +130,7 @@ if mode == "Guided simulation":
     radar_fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0,6])), showlegend=True)
     st.plotly_chart(radar_fig, use_container_width=True)
 
-    st.subheader("🔎 Regulatory Subcomponent Overview – Current Position by Rank")
+    st.subheader("\U0001F50E Regulatory Subcomponent Overview – Current Position by Rank")
     ranks = {ind: df[ind].rank(method="min").astype(int) for ind in low_level_indicators}
     rank_df = pd.DataFrame(ranks)
     summary = []
@@ -143,7 +142,7 @@ if mode == "Guided simulation":
     df_summary = pd.DataFrame(summary).sort_values("Rank")
     st.dataframe(df_summary.reset_index(drop=True), use_container_width=True)
 
-    st.subheader("📌 Suggested Reform Priorities")
+    st.subheader("\U0001F4CC Suggested Reform Priorities")
     top3 = df_summary.tail(3)["Indicator"].tolist()
 
     sliders = {}
@@ -172,7 +171,7 @@ if mode == "Guided simulation":
     if selected_country_clean in valid_simulated["Country_clean"].values:
         new_rank = int(valid_simulated.loc[valid_simulated["Country_clean"] == selected_country_clean, "rank_simulated"].values[0])
     else:
-        st.warning("⚠️ Could not compute rank: missing or invalid simulated data for this country.")
+        st.warning("\u26A0\ufe0f Could not compute rank: missing or invalid simulated data for this country.")
 
     st.write("---")
     col4, col5, col6 = st.columns(3)
@@ -182,6 +181,7 @@ if mode == "Guided simulation":
         st.metric("Simulated PMR Estimate", round(new_medium_avg, 3), delta=round(new_medium_avg - original_medium, 3))
     with col6:
         st.metric("Simulated Rank", f"{new_rank}" if new_rank is not None else "N/A")
+
 
 elif mode == "Autonomous simulation":
     st.subheader("🧭 Autonomous Simulation – Choose Reform Areas Hierarchically")
