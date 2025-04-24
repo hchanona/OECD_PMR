@@ -110,9 +110,14 @@ selected_country = st.sidebar.selectbox("Select a country", countries, index=cou
 
 # === TÍTULO DINÁMICO ===
 if mode == "Relative ranking":
-    st.title("PMR Sandbox – Relative Ranking")
+    st.markdown("""
+    <h1 style='color:#1f77b4; font-weight: bold;'>PMR Sandbox – Relative Ranking</h1>
+    """, unsafe_allow_html=True)
+
 elif mode == "Impact on the economy":
-    st.title("PMR Sandbox – Economic Impact")
+    st.markdown("""
+    <h1 style='color:#1f77b4; font-weight: bold;'>PMR Sandbox – Economic Impact</h1>
+    """, unsafe_allow_html=True)
 
 st.sidebar.markdown("""---""")
 st.sidebar.markdown("""
