@@ -116,7 +116,7 @@ elif mode == "Impact on the economy":
 
 st.sidebar.markdown("""---""")
 st.sidebar.markdown("""
-### ℹ️ What is the PMR Sandbox?
+### What is the PMR Sandbox?
 
 This tool allows you to explore and simulate the OECD’s Product Market Regulation (PMR) indicators. You can:
 - Compare your country's regulatory profile with OECD and non-OECD averages,
@@ -148,7 +148,7 @@ if mode == "Relative ranking":
         st.metric(label='OECD Average PMR', value=round(oecd_avg, 3))
         st.metric(label='Non-OECD Average PMR', value=round(non_oecd_avg, 3))
 
-    st.subheader("\U0001F4CA PMR Profile: Country vs OECD Average (Medium-level indicators)")
+    st.subheader("PMR Profile: Country vs OECD Average (Medium-level indicators)")
     oecd_avg_vals = df[df["OECD"] == 1][medium_level_indicators].mean()
     country_vals = row[medium_level_indicators]
 
@@ -158,7 +158,7 @@ if mode == "Relative ranking":
     radar_fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0,6])), showlegend=True)
     st.plotly_chart(radar_fig, use_container_width=True)
 
-    st.subheader("\U0001F50E Regulatory Subcomponent Overview – Current Position by Rank")
+    st.subheader("Regulatory Subcomponent Overview – Current Position by Rank")
     ranks = {ind: df[ind].rank(method="min").astype(int) for ind in low_level_indicators}
     rank_df = pd.DataFrame(ranks)
     summary = []
@@ -170,7 +170,7 @@ if mode == "Relative ranking":
     df_summary = pd.DataFrame(summary).sort_values("Rank")
     st.dataframe(df_summary.reset_index(drop=True), use_container_width=True)
 
-    st.subheader("\U0001F4CC Suggested Reform Priorities")
+    st.subheader("Suggested Reform Priorities")
     top3 = df_summary.tail(3)["Indicator"].tolist()
 
     sliders = {}
