@@ -172,21 +172,21 @@ if mode == "Guided simulation":
     if "PMR_simulated" not in df_simulated.columns:
         df_simulated["PMR_simulated"] = np.nan
 
-    # Obtener el índice del país simulado
+    # Reemplazar los valores del país simulado
     idx = df_simulated[df_simulated["Country_clean"] == selected_country_clean].index[0]
-
-    # Reemplazar los valores directamente en el DataFrame
     for col in low_level_indicators + medium_level_indicators + high_level_indicators + ["PMR_simulated"]:
         df_simulated.at[idx, col] = simulated_row[col]
 
+    # Recalcular PMR_simulated para todos los países
+    df_simulated["PMR_simulated"] = df_simulated.apply(
+        lambda row: compute_full_pmr(row, low_to_medium_map, medium_to_high_map)["PMR_simulated"], axis=1
+    )
+
+    # Calcular ranking
     valid_simulated = df_simulated[df_simulated["PMR_simulated"].notna()].copy()
     valid_simulated["rank_simulated"] = valid_simulated["PMR_simulated"].rank(method="min")
 
-    new_rank = None
-    if selected_country_clean in valid_simulated["Country_clean"].values:
-        new_rank = int(valid_simulated.loc[valid_simulated["Country_clean"] == selected_country_clean, "rank_simulated"].values[0])
-    else:
-        st.warning("\u26A0\ufe0f Could not compute rank: missing or invalid simulated data for this country.")
+    new_rank = int(valid_simulated.loc[valid_simulated["Country_clean"] == selected_country_clean, "rank_simulated"].values[0])
 
     st.write("---")
     col4, col5, col6 = st.columns(3)
