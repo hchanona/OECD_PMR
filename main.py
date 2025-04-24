@@ -243,7 +243,8 @@ elif mode == "Impact on the economy":
     st.write("""This analysis estimates how a **reduction in PMR** is associated with a **percentage increase in GDP per capita (PPP)**.""")
 
     st.caption("""
-    **Note:** GDP per capita (PPP) values correspond to the indicator *"GDP per capita, PPP (constant 2021 international $)"* from the **World Bank** (International Comparison Program, World Development Indicators database, Eurostat-OECD PPP Programme).
+    **Note:** GDP per capita (PPP) values correspond to the indicator *"GDP per capita, PPP (constant 2021 international $)"* from the **World Bank** (International Comparison Program,
+    World Development Indicators database, Eurostat-OECD PPP Programme). Available at: https://data.worldbank.org/indicator/NY.GDP.PCAP.PP.KD
     """)
 
     # Aquí va la ecuación bien presentada
