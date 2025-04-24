@@ -122,7 +122,7 @@ elif mode == "Impact on the economy":
 
 with st.expander("About this tool"):
     st.markdown("""
-    This sandbox was designed as a **complementary interface** to the OECD’s official PMR Policy Simulator.
+    This sandbox was designed as a **complementary interface** to the OECD’s official PMR Policy Simulator, which is available at: https://oecd-main.shinyapps.io/pmr-simulator/
 
     It aims to:
     - Show how PMR reform is economically relevant by illustrating its association with **GDP per capita** (via a log-log regression model).
@@ -241,6 +241,10 @@ elif mode == "Impact on the economy":
 
     st.subheader("How is PMR associated with income per capita?")
     st.write("""This analysis estimates how a **reduction in PMR** is associated with a **percentage increase in GDP per capita (PPP)**.""")
+
+    st.caption("""
+    **Note:** GDP per capita (PPP) values correspond to the indicator *"GDP per capita, PPP (constant 2021 international $)"* from the **World Bank** (International Comparison Program, World Development Indicators database, Eurostat-OECD PPP Programme).
+    """)
 
     # Aquí va la ecuación bien presentada
     st.markdown("### Regression model")
