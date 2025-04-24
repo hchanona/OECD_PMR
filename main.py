@@ -101,12 +101,12 @@ def compute_full_pmr(row, low_to_medium_map, medium_to_high_map):
 
 # === SIDEBAR ===
 st.sidebar.header("Options")
-mode = st.sidebar.radio("What do you want to do?", ["Guided simulation", "Autonomous simulation", "Stats"])
+mode = st.sidebar.radio("What do you want to simulate?", ["Relative ranking", "Impact on the economy"])
 countries = df["Country"].tolist()
 selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Australia") if "Australia" in countries else 0)
 
 # === MODO: SIMULACIÓN GUIADA ===
-if mode == "Guided simulation":
+if mode == "Relative ranking":
     selected_country_clean = selected_country.strip().lower()
     row = df[df["Country_clean"] == selected_country_clean].iloc[0]
     pmr_score = row["PMR_2023"]
@@ -196,78 +196,8 @@ if mode == "Guided simulation":
         st.metric("Simulated PMR Estimate", round(new_medium_avg, 3), delta=round(new_medium_avg - original_medium, 3))
     with col6:
         st.metric("Simulated Rank", f"{new_rank}" if new_rank is not None else "N/A")
-
-elif mode == "Autonomous simulation":
-    st.subheader("🧭 Autonomous Simulation – Choose Reform Areas Hierarchically")
-
-    selected_country_clean = selected_country.strip().lower()
-    row = df[df["Country_clean"] == selected_country_clean].iloc[0]
-    pmr_score = row["PMR_2023"]
-
-    st.markdown(f"**{selected_country}** – Current PMR Score: **{round(pmr_score, 3)}**")
-
-    # Paso 1: Selección de rubros
-    selected_rubros = st.multiselect(
-        "Selecciona hasta 3 rubros de nivel medio para simular reformas:",
-        options=medium_level_indicators,
-        max_selections=3,
-        help="Puedes elegir hasta tres rubros para ajustar sus subcomponentes"
-    )
-
-    if selected_rubros:
-        simulated_row = row.copy()
-        st.write("### 🎯 Ajusta los subcomponentes de cada rubro seleccionado:")
-
-        for rubro in selected_rubros:
-            st.markdown(f"**{rubro}**")
-            subcomponents = low_to_medium_map.get(rubro, [])
-            if not subcomponents:
-                st.warning("No se encontraron subcomponentes definidos para este rubro.")
-                continue
-
-            for sub in subcomponents:
-                if sub in simulated_row:
-                    current_val = simulated_row[sub]
-                    new_val = st.slider(f"{sub}", 0.0, 6.0, float(current_val), 0.1)
-                    simulated_row[sub] = new_val
-
-        # Recalcular todo el PMR jerárquicamente
-        simulated_row = compute_full_pmr(simulated_row, low_to_medium_map, medium_to_high_map)
-        new_pmr = simulated_row["PMR_simulated"]
-
-        # Clonar df y recalcular PMR_simulated para todos
-        df_simulated = df.copy()
-        if "PMR_simulated" not in df_simulated.columns:
-            df_simulated["PMR_simulated"] = np.nan
-
-        idx = df_simulated[df_simulated["Country_clean"] == selected_country_clean].index[0]
-        for col in low_level_indicators + medium_level_indicators + high_level_indicators + ["PMR_simulated"]:
-            df_simulated.at[idx, col] = simulated_row[col]
-
-        df_simulated["PMR_simulated"] = df_simulated.apply(
-            lambda row: compute_full_pmr(row, low_to_medium_map, medium_to_high_map)["PMR_simulated"], axis=1
-        )
-
-        # Ranking absoluto
-        valid_simulated = df_simulated[df_simulated["PMR_simulated"].notna()].copy()
-        valid_simulated["rank_simulated"] = valid_simulated["PMR_simulated"].rank(method="min")
-
-        original_rank = int(df["PMR_2023"].rank(method="min").loc[df["Country_clean"] == selected_country_clean].values[0])
-        new_rank = int(valid_simulated.loc[valid_simulated["Country_clean"] == selected_country_clean, "rank_simulated"].values[0])
-
-        st.write("---")
-        col7, col8, col9 = st.columns(3)
-        with col7:
-            st.metric("Original PMR", round(pmr_score, 3))
-        with col8:
-            st.metric("Simulated PMR", round(new_pmr, 3), delta=round(new_pmr - pmr_score, 3))
-        with col9:
-            st.metric("Simulated Rank", f"{new_rank} (original: {original_rank})")
-    else:
-        st.info("Selecciona al menos un rubro de nivel medio para comenzar.")
-
         
-elif mode == "Stats":
+elif mode == "Impact on the economy":
     st.header("📈 PMR Impact Simulator")
 
     st.subheader("🔎 ¿Qué tan asociado está el PMR con el ingreso per cápita?")
