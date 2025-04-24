@@ -283,12 +283,18 @@ elif mode == "Impact on the economy":
     pred_gdp_now = np.exp(pred_log_gdp_now)
 
     if current_gdp > pred_gdp_now:
-        st.warning(f"{selected_country} currently has a GDP above the level predicted by the model for its PMR (**${round(pred_gdp_now):,} USD** predicted vs **${round(current_gdp):,} USD** actual).")
-    
-    st.markdown(f"""
-    <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 6px solid #ffeeba;">
-    <b>Note:</b> {selected_country} currently has a GDP above the level predicted by the model for its PMR 
-    (**${round(pred_gdp_now):,} USD** predicted vs **${round(current_gdp):,} USD** actual).
-    </div>
-    """, unsafe_allow_html=True)
+        st.markdown(f""" 
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 6px solid #ffeeba;">
+        <b>Note:</b> {selected_country} currently has a GDP above the level predicted by the model for its PMR 
+        (<b>${round(pred_gdp_now):,} USD</b> predicted vs <b>${round(current_gdp):,} USD</b> actual).
+        <br><br>
+        <em>Imagine what could happen if regulatory conditions improved further.</em>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.caption("""
+    *This simulator is based on an average elasticity estimated across all countries in the dataset. 
+    The relationship shown is statistical, not causal, and may not apply directly to countries that already 
+    perform significantly above or below model expectations.*
+    """)
 
