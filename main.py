@@ -6,7 +6,6 @@ import plotly.graph_objects as go
 import statsmodels.api as sm
 
 st.set_page_config(page_title="Product Market Regulator Sandbox", layout="wide")
-st.title("PMR Sandbox")
 
 @st.cache_data
 def load_data():
@@ -109,6 +108,12 @@ st.sidebar.header("Options")
 mode = st.sidebar.radio("What do you want to simulate?", ["Relative ranking", "Impact on the economy"])
 countries = df["Country"].tolist()
 selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Australia") if "Australia" in countries else 0)
+
+# === TÍTULO DINÁMICO ===
+if mode == "Relative ranking":
+    st.title("🏁 PMR Sandbox – Relative Ranking")
+elif mode == "Impact on the economy":
+    st.title("📈 PMR Sandbox – Economic Impact")
 
 st.sidebar.markdown("""---""")
 st.sidebar.markdown("""
