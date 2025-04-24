@@ -119,9 +119,9 @@ st.sidebar.markdown("""
 ### ℹ️ What is the PMR Sandbox?
 
 This tool allows you to explore and simulate the OECD’s Product Market Regulation (PMR) indicators. You can:
-- 🧭 **Compare** your country's regulatory profile with OECD and non-OECD averages,
-- 📉 **Simulate reforms** to observe changes in your PMR ranking,
-- 📈 **Estimate the economic impact** of better regulation on GDP per capita (PPP).
+- Compare your country's regulatory profile with OECD and non-OECD averages,
+- Simulate reforms to observe changes in your PMR ranking,
+- Estimate the economic impact of better regulation on GDP per capita (PPP).
 
 The PMR score ranges from 0 to 6. Lower scores are better — they indicate fewer regulatory barriers to competition and market access.
 
@@ -222,7 +222,7 @@ if mode == "Relative ranking":
         
 elif mode == "Impact on the economy":
 
-    st.subheader("🔎 How is PMR associated with income per capita?")
+    st.subheader("How is PMR associated with income per capita?")
     st.write("""
     This analysis estimates how a **reduction in PMR** is associated with a **percentage increase in GDP per capita (PPP)**.
 
@@ -241,7 +241,7 @@ elif mode == "Impact on the economy":
     y = df_log["log_gdp"]
     model = sm.OLS(y, X).fit()
 
-    st.subheader("📉 Estimated elasticity")
+    st.subheader("Estimated elasticity")
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Coef. log(PMR)", round(model.params["log_pmr"], 3))
@@ -251,7 +251,7 @@ elif mode == "Impact on the economy":
         st.metric("Adjusted R²", round(model.rsquared_adj, 3))
 
     st.markdown("---")
-    st.subheader("🧮 Simulate the impact of PMR reform")
+    st.subheader("Simulate the impact of PMR reform")
     selected_country_clean = selected_country.strip().lower()
     row = df[df["Country_clean"] == selected_country_clean].iloc[0]
 
@@ -288,5 +288,5 @@ elif mode == "Impact on the economy":
         st.warning(f"{selected_country} currently has a GDP above the level predicted by the model for its PMR (**${round(pred_gdp_now):,} USD** predicted vs **${round(current_gdp):,} USD** actual).")
 
     st.caption("""
-    📌 *This simulator is based on an average elasticity estimated across all countries. The relationship shown is statistical, not causal, and may not apply directly to countries that are already significantly above or below the average.*
+    *Note: This simulator is based on an average elasticity estimated across all countries. The relationship shown is statistical, not causal, and may not apply directly to countries that are already significantly above or below the average.*
     """)
