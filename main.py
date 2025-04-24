@@ -116,7 +116,7 @@ if mode == "Guided simulation":
         st.metric(label=f"{selected_country} PMR Score", value=round(pmr_score, 3))
         # Rank global (entre todos los países)
         global_rank_series = df["PMR_2023"].rank(method="min").astype(int)
-        global_rank = int(global_rank_series[df["Country_clean"] == selected_country_clean])
+        global_rank = int(global_rank_series.loc[df["Country_clean"] == selected_country_clean].values[0])
         st.metric(label="Rank among all countries", value=f"{global_rank} of {len(df)}")
 
     with col2:
