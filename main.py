@@ -197,9 +197,6 @@ if mode == "Guided simulation":
     with col6:
         st.metric("Simulated Rank", f"{new_rank}" if new_rank is not None else "N/A")
 
-
-[...]  # código anterior intacto
-
 elif mode == "Autonomous simulation":
     st.subheader("🧭 Autonomous Simulation – Choose Reform Areas Hierarchically")
 
@@ -271,63 +268,73 @@ elif mode == "Autonomous simulation":
 
         
 elif mode == "Stats":
-    st.header("📈 PMR Trends")
+    st.header("📈 PMR Impact Simulator")
 
-    # Subtítulo y explicación del análisis
-    st.subheader("🔎 PMR Score vs. GDP per capita (log-log) & OECD Membership")
+    st.subheader("🔎 ¿Qué tan asociado está el PMR con el ingreso per cápita?")
     st.write("""
-    Este análisis examina cómo el **ingreso per cápita (logarítmico)** y la **pertenencia a la OCDE** afectan el **logaritmo del PMR**. 
-    Los coeficientes se interpretan como **elasticidades** o diferencias porcentuales aproximadas.
+    Este análisis estima cómo una **reducción en el PMR** se asocia con un **aumento porcentual en el ingreso per cápita ajustado por paridad de compra** (PIB PPC).
+
+    Se basa en una regresión lineal del logaritmo del PIB per cápita sobre el logaritmo del PMR y la membresía OCDE:
+
+    `log(GDP_PCAP_2023) ~ log(PMR_2023) + OECD`
     """)
 
-    # Filtrar solo países con datos válidos para logaritmos
+    # Preparar datos válidos
     df_log = df[(df["PMR_2023"] > 0) & (df["GDP_PCAP_2023"] > 0)].copy()
-    
-    # Crear columnas transformadas en logaritmos
     df_log["log_pmr"] = np.log(df_log["PMR_2023"])
     df_log["log_gdp"] = np.log(df_log["GDP_PCAP_2023"])
 
-    # Crear las variables independientes (X) y dependiente (y)
-    X = sm.add_constant(df_log[["log_gdp", "OECD"]])  # constante + log(PIB) + dummy OCDE
-    y = df_log["log_pmr"]  # log(PMR)
-
-    # Ajustar modelo de regresión lineal
+    # Ajustar modelo
+    X = sm.add_constant(df_log[["log_pmr", "OECD"]])
+    y = df_log["log_gdp"]
     model = sm.OLS(y, X).fit()
 
-    # Mostrar resultados de la regresión como texto plano
-    st.text("OLS Regression Results (log-log)")
-    st.text(model.summary())
+    st.subheader("📉 Elasticidad estimada")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Coef. log(PMR)", round(model.params["log_pmr"], 3))
+    with col2:
+        st.metric("Coef. OCDE", round(model.params["OECD"], 3))
+    with col3:
+        st.metric("R² ajustado", round(model.rsquared_adj, 3))
 
-    # Gráfico de dispersión con línea de regresión
-    st.subheader("📊 Distribución log(PMR) vs log(ingreso per cápita)")
+    st.markdown("---")
+    st.subheader("🧮 Simula el impacto de mejorar el PMR")
+    selected_country_clean = selected_country.strip().lower()
+    row = df[df["Country_clean"] == selected_country_clean].iloc[0]
 
-    # Crear puntos para predicción de la curva
-    x_vals = np.linspace(df_log["log_gdp"].min(), df_log["log_gdp"].max(), 100)
-    X_pred = pd.DataFrame({
-        "const": 1.0,
-        "log_gdp": x_vals,
-        "OECD": df_log["OECD"].mean()  # mantener constante la OCDE dummy
-    })
-    y_vals = model.predict(X_pred)
+    current_pmr = row["PMR_2023"]
+    current_gdp = row["GDP_PCAP_2023"]
+    is_oecd = row["OECD"]
 
-    # Crear gráfico de dispersión con línea de regresión
-    fig = px.scatter(
-        df_log,
-        x="log_gdp",
-        y="log_pmr",
-        text="Country",
-        labels={"log_gdp": "log(Income per capita)", "log_pmr": "log(PMR Score)"},
-        title="log(PMR) vs log(Income per capita)"
-    )
+    st.markdown(f"**{selected_country}** — PMR actual: **{round(current_pmr, 2)}**, PIB PPC actual: **${round(current_gdp):,} USD**")
 
-    fig.add_trace(go.Scatter(
-        x=x_vals,
-        y=y_vals,
-        mode='lines',
-        name='Regresión lineal log-log',
-        line=dict(color='red')
-    ))
+    # Slider: mejora en PMR (% reducción)
+    pct_reduction = st.slider("% de reducción en el PMR", 0, 50, 10)
+    new_pmr = current_pmr * (1 - pct_reduction / 100)
 
-    fig.update_traces(textposition='top center')
-    st.plotly_chart(fig)
+    # Calcular log-pmr antes y después
+    log_pmr_now = np.log(current_pmr)
+    log_pmr_new = np.log(new_pmr)
+    delta_log_pmr = log_pmr_new - log_pmr_now
 
+    # Usar coeficiente para estimar delta log(GDP)
+    coef = model.params["log_pmr"]
+    delta_log_gdp = coef * delta_log_pmr
+    pct_change_gdp = (np.exp(delta_log_gdp) - 1) * 100
+
+    predicted_new_gdp = current_gdp * (1 + pct_change_gdp / 100)
+
+    st.markdown(f"Reducir el PMR de **{round(current_pmr, 2)}** a **{round(new_pmr, 2)}** está asociado a un incremento estimado del **{round(pct_change_gdp, 2)}%** en el PIB per cápita.")
+    st.metric("PIB PPC proyectado", f"${round(predicted_new_gdp):,} USD")
+
+    # Mostrar diferencia entre actual y predicho por el modelo
+    pred_log_gdp_now = model.predict([[1.0, log_pmr_now, is_oecd]])[0]
+    pred_gdp_now = np.exp(pred_log_gdp_now)
+
+    if current_gdp > pred_gdp_now:
+        st.warning(f"{selected_country} ya tiene un ingreso por encima de lo predicho por el modelo para su PMR actual (**${round(pred_gdp_now):,} USD** predicho vs **${round(current_gdp):,} USD** observado).")
+
+    st.caption("""
+    📌 *Este simulador se basa en una elasticidad promedio estimada para todos los países. La relación mostrada es estadística, no causal, y puede no aplicarse directamente a países que ya están significativamente por encima o por debajo del promedio.*
+    """)
