@@ -167,7 +167,18 @@ if mode == "Guided simulation":
     original_medium = row[medium_level_indicators].mean()
 
     df_simulated = df.copy()
-    df_simulated.loc[df_simulated["Country_clean"] == selected_country_clean, low_level_indicators + medium_level_indicators + high_level_indicators + ["PMR_simulated"]] = simulated_row[low_level_indicators + medium_level_indicators + high_level_indicators + ["PMR_simulated"]]
+
+    # Asegura que la columna PMR_simulated exista
+    if "PMR_simulated" not in df_simulated.columns:
+        df_simulated["PMR_simulated"] = np.nan
+
+    # Obtener el índice del país simulado
+    idx = df_simulated[df_simulated["Country_clean"] == selected_country_clean].index[0]
+
+    # Reemplazar los valores directamente en el DataFrame
+    for col in low_level_indicators + medium_level_indicators + high_level_indicators + ["PMR_simulated"]:
+        df_simulated.at[idx, col] = simulated_row[col]
+
     valid_simulated = df_simulated[df_simulated["PMR_simulated"].notna()].copy()
     valid_simulated["rank_simulated"] = valid_simulated["PMR_simulated"].rank(method="min")
 
