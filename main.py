@@ -13,11 +13,10 @@ st.title("PMR Sandbox")
 def load_data():
     df = pd.read_excel("PMR_with_GDP.xlsx")
     df = df.dropna(how="all").dropna(axis=1, how="all")
+    df["Country_clean"] = df["Country"].str.strip().str.lower()
     return df
 
 df = load_data()
-df["Country_clean"] = df["Country"].str.strip().str.lower()
-
 st.write(f"🌍 This dataset includes **{df['Country'].nunique()} countries**.")
 
 medium_level_indicators = [
@@ -29,7 +28,10 @@ medium_level_indicators = [
     "Barriers to Trade and Investment"
 ]
 
-low_level_indicators = [col for col in df.columns if col not in ["Country", "OECD", "GDP_PCAP_2023", "PMR_2023"] + medium_level_indicators]
+low_level_indicators = [
+    col for col in df.columns
+    if col not in ["Country", "Country_clean", "OECD", "GDP_PCAP_2023", "PMR_2023"] + medium_level_indicators
+]
 
 st.sidebar.header("Options")
 mode = st.sidebar.radio("What do you want to do?", ["Guided simulation", "Autonomous simulation", "Stats"])
@@ -68,7 +70,7 @@ if mode == "Guided simulation":
     for ind in low_level_indicators:
         score = row[ind]
         rank = int(rank_df[df["Country_clean"] == selected_country_clean][ind])
-        summary.append({"Indicator": ind, "Score": round(score, 2), "Rank": rank})
+        summary.append({"Indicator": ind, "Score": round(score, 2) if pd.notna(score) else "N/A", "Rank": rank})
 
     df_summary = pd.DataFrame(summary).sort_values("Rank")
     st.dataframe(df_summary.reset_index(drop=True), use_container_width=True)
@@ -87,12 +89,10 @@ if mode == "Guided simulation":
     for ind, val in sliders.items():
         simulated_row[ind] = val
 
-    # Recalcular medium-level indicators
-    for medium_clean in medium_level_indicators_clean:
-        subcomponents = related_subcomponents(medium_clean)
+    for medium in medium_level_indicators:
+        subcomponents = [col for col in low_level_indicators if col in df.columns and (col in medium or medium in col)]
         if subcomponents:
-            original_medium = medium_map[medium_clean]
-            simulated_row[original_medium] = simulated_row[subcomponents].mean()
+            simulated_row[medium] = simulated_row[subcomponents].mean()
 
     new_medium_avg = simulated_row[medium_level_indicators].mean()
     original_medium = row[medium_level_indicators].mean()
