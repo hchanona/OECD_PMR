@@ -284,7 +284,9 @@ elif mode == "Impact on the economy":
 
     if current_gdp > pred_gdp_now:
         st.warning(f"{selected_country} currently has a GDP above the level predicted by the model for its PMR (**${round(pred_gdp_now):,} USD** predicted vs **${round(current_gdp):,} USD** actual).")
+    
+        st.markdown("""
+        > **Imagine what could happen if regulatory conditions improved further.**  
+        > Even countries that outperform expectations might unlock additional economic potential by reducing barriers to competition.
+        """)
 
-    st.caption("""
-    *Note: This simulator is based on an average elasticity estimated across all countries. The relationship shown is statistical, not causal, and may not apply directly to countries that are already significantly above or below the average.*
-    """)
