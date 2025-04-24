@@ -223,13 +223,11 @@ if mode == "Relative ranking":
 elif mode == "Impact on the economy":
 
     st.subheader("How is PMR associated with income per capita?")
-    st.write("""
-    This analysis estimates how a **reduction in PMR** is associated with a **percentage increase in GDP per capita (PPP)**.
+    st.write("""This analysis estimates how a **reduction in PMR** is associated with a **percentage increase in GDP per capita (PPP)**.""")
 
-    It is based on a linear regression of the logarithm of GDP per capita on the logarithm of PMR and OECD membership:
-
-    `log(GDP_PCAP_2023) ~ log(PMR_2023) + OECD`
-    """)
+    # Aquí va la ecuación bien presentada
+    st.markdown("### Regression model")
+    st.latex(r"\log(\text{GDP}_{\text{PCAP\_2023}}) = \beta_0 + \beta_1 \log(\text{PMR}_{2023}) + \beta_2 \cdot \text{OECD} + \varepsilon")
 
     # Prepare valid data
     df_log = df[(df["PMR_2023"] > 0) & (df["GDP_PCAP_2023"] > 0)].copy()
