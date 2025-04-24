@@ -294,7 +294,7 @@ elif mode == "Stats":
     with col1:
         st.metric("Coef. log(PMR)", round(model.params["log_pmr"], 3))
     with col2:
-        st.metric("Coef. OCDE", round(model.params["OECD"], 3))
+        st.metric("p-valor log(PMR)", f"{model.pvalues['log_pmr']:.3f}")
     with col3:
         st.metric("R² ajustado", round(model.rsquared_adj, 3))
 
