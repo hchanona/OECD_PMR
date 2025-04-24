@@ -220,11 +220,11 @@ if mode == "Relative ranking":
 elif mode == "Impact on the economy":
     st.header("📈 PMR Impact Simulator")
 
-    st.subheader("🔎 ¿Qué tan asociado está el PMR con el ingreso per cápita?")
+    st.subheader("🔎 How is PMR associated with income per capita?")
     st.write("""
-    Este análisis estima cómo una **reducción en el PMR** se asocia con un **aumento porcentual en el ingreso per cápita ajustado por paridad de compra** (PIB PPC).
+    This analysis estimates how a **reduction in PMR** is associated with a **percentage increase in GDP per capita (PPP)**.
 
-    Se basa en una regresión lineal del logaritmo del PIB per cápita sobre el logaritmo del PMR y la membresía OCDE:
+    It is based on a linear regression of the logarithm of GDP per capita on the logarithm of PMR and OECD membership:
 
     `log(GDP_PCAP_2023) ~ log(PMR_2023) + OECD`
     """)
@@ -239,17 +239,17 @@ elif mode == "Impact on the economy":
     y = df_log["log_gdp"]
     model = sm.OLS(y, X).fit()
 
-    st.subheader("📉 Elasticidad estimada")
+    st.subheader("📉 Estimated Elasticity")
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Coef. log(PMR)", round(model.params["log_pmr"], 3))
     with col2:
-        st.metric("p-valor log(PMR)", f"{model.pvalues['log_pmr']:.3f}")
+        st.metric("p-value log(PMR)", f"{model.pvalues['log_pmr']:.3f}")
     with col3:
-        st.metric("R² ajustado", round(model.rsquared_adj, 3))
+        st.metric("Adjusted R²", round(model.rsquared_adj, 3))
 
     st.markdown("---")
-    st.subheader("🧮 Simula el impacto de mejorar el PMR")
+    st.subheader("🧮 Simulate the impact of PMR reform")
     selected_country_clean = selected_country.strip().lower()
     row = df[df["Country_clean"] == selected_country_clean].iloc[0]
 
@@ -257,10 +257,10 @@ elif mode == "Impact on the economy":
     current_gdp = row["GDP_PCAP_2023"]
     is_oecd = row["OECD"]
 
-    st.markdown(f"**{selected_country}** — PMR actual: **{round(current_pmr, 2)}**, PIB PPC actual: **${round(current_gdp):,} USD**")
+    st.markdown(f"**{selected_country}** — Current PMR: **{round(current_pmr, 2)}**, Current GDP (PPP): **${round(current_gdp):,} USD**")
 
     # Slider: mejora en PMR (% reducción)
-    pct_reduction = st.slider("% de reducción en el PMR", 0, 20, 10)
+    pct_reduction = st.slider("% reduction in PMR", 0, 20, 10)
     new_pmr = current_pmr * (1 - pct_reduction / 100)
 
     # Calcular log-pmr antes y después
@@ -275,16 +275,16 @@ elif mode == "Impact on the economy":
 
     predicted_new_gdp = current_gdp * (1 + pct_change_gdp / 100)
 
-    st.markdown(f"Reducir el PMR de **{round(current_pmr, 2)}** a **{round(new_pmr, 2)}** está asociado a un incremento estimado del **{round(pct_change_gdp, 2)}%** en el PIB per cápita.")
-    st.metric("PIB PPC proyectado", f"${round(predicted_new_gdp):,} USD")
+    st.markdown(f"Reducing PMR from **{round(current_pmr, 2)}** to **{round(new_pmr, 2)}** is associated with an estimated **{round(pct_change_gdp, 2)}%** increase in GDP per capita.")
+    st.metric("Projected GDP per capita (PPP)", f"${round(predicted_new_gdp):,} USD")
 
     # Mostrar diferencia entre actual y predicho por el modelo
     pred_log_gdp_now = model.predict([[1.0, log_pmr_now, is_oecd]])[0]
     pred_gdp_now = np.exp(pred_log_gdp_now)
 
     if current_gdp > pred_gdp_now:
-        st.warning(f"{selected_country} ya tiene un ingreso por encima de lo predicho por el modelo para su PMR actual (**${round(pred_gdp_now):,} USD** predicho vs **${round(current_gdp):,} USD** observado).")
+        st.warning(f"{selected_country} currently has a GDP above the level predicted by the model for its PMR (**${round(pred_gdp_now):,} USD** predicted vs **${round(current_gdp):,} USD** actual).")
 
     st.caption("""
-    📌 *Este simulador se basa en una elasticidad promedio estimada para todos los países. La relación mostrada es estadística, no causal, y puede no aplicarse directamente a países que ya están significativamente por encima o por debajo del promedio.*
+    📌 *This simulator is based on an average elasticity estimated across all countries. The relationship shown is statistical, not causal, and may not apply directly to countries that are already significantly above or below the average.*
     """)
