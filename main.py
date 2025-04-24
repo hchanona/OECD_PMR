@@ -198,71 +198,78 @@ if mode == "Guided simulation":
         st.metric("Simulated Rank", f"{new_rank}" if new_rank is not None else "N/A")
 
 
+[...]  # código anterior intacto
+
 elif mode == "Autonomous simulation":
     st.subheader("🧭 Autonomous Simulation – Choose Reform Areas Hierarchically")
 
-    # Mensaje introductorio
-    st.markdown("Selecciona hasta **tres indicadores de nivel medio** para simular reformas:")
+    selected_country_clean = selected_country.strip().lower()
+    row = df[df["Country_clean"] == selected_country_clean].iloc[0]
+    pmr_score = row["PMR_2023"]
 
-    # Multiselect para elegir hasta 3 indicadores de nivel medio
+    st.markdown(f"**{selected_country}** – Current PMR Score: **{round(pmr_score, 3)}**")
+
+    # Paso 1: Selección de rubros
     selected_rubros = st.multiselect(
-        "Indicadores de nivel medio",
+        "Selecciona hasta 3 rubros de nivel medio para simular reformas:",
         options=medium_level_indicators,
-        default=[],
         max_selections=3,
-        help="Selecciona los rubros que deseas reformar"
+        help="Puedes elegir hasta tres rubros para ajustar sus subcomponentes"
     )
 
     if selected_rubros:
-        # Se obtiene la fila del país seleccionado
-        simulated_row = df[df["Country"] == selected_country].iloc[0].copy()
-
+        simulated_row = row.copy()
         st.write("### 🎯 Ajusta los subcomponentes de cada rubro seleccionado:")
 
         for rubro in selected_rubros:
             st.markdown(f"**{rubro}**")
-            # Encuentra subcomponentes por coincidencia de nombre
-            subcomponents = [
-                col for col in low_level_indicators
-                if col in df.columns and col in simulated_row.index and (col in rubro or rubro in col)
-            ]
-
+            subcomponents = low_to_medium_map.get(rubro, [])
             if not subcomponents:
-                st.warning("No se encontraron subcomponentes directamente ligados. Se usó coincidencia de texto.")
+                st.warning("No se encontraron subcomponentes definidos para este rubro.")
+                continue
 
             for sub in subcomponents:
-                current_val = simulated_row[sub]
-                new_val = st.slider(f"{sub}", 0.0, 6.0, float(current_val), 0.1)
-                simulated_row[sub] = new_val
+                if sub in simulated_row:
+                    current_val = simulated_row[sub]
+                    new_val = st.slider(f"{sub}", 0.0, 6.0, float(current_val), 0.1)
+                    simulated_row[sub] = new_val
 
-        # Recalcular cada indicador medio a partir del promedio de sus subcomponentes
-        for rubro in medium_level_indicators:
-            sublist = [
-                col for col in low_level_indicators
-                if col in df.columns and (col in rubro or rubro in col)
-            ]
-            if sublist:
-                simulated_row[rubro] = simulated_row[sublist].mean()
+        # Recalcular todo el PMR jerárquicamente
+        simulated_row = compute_full_pmr(simulated_row, low_to_medium_map, medium_to_high_map)
+        new_pmr = simulated_row["PMR_simulated"]
 
-        # Recalcular el PMR simulado como promedio de los indicadores medios
-        new_pmr = simulated_row[medium_level_indicators].mean()
-        original_pmr = df[df["Country"] == selected_country][medium_level_indicators].mean(axis=1).values[0]
+        # Clonar df y recalcular PMR_simulated para todos
+        df_simulated = df.copy()
+        if "PMR_simulated" not in df_simulated.columns:
+            df_simulated["PMR_simulated"] = np.nan
 
-        # Se calcula un nuevo PMR para todos los países para poder estimar percentiles
-        df["PMR_simulated"] = df[medium_level_indicators].mean(axis=1)
-        new_percentile = (df["PMR_simulated"] > new_pmr).mean() * 100
+        idx = df_simulated[df_simulated["Country_clean"] == selected_country_clean].index[0]
+        for col in low_level_indicators + medium_level_indicators + high_level_indicators + ["PMR_simulated"]:
+            df_simulated.at[idx, col] = simulated_row[col]
 
-        # Muestra los resultados finales
+        df_simulated["PMR_simulated"] = df_simulated.apply(
+            lambda row: compute_full_pmr(row, low_to_medium_map, medium_to_high_map)["PMR_simulated"], axis=1
+        )
+
+        # Ranking absoluto
+        valid_simulated = df_simulated[df_simulated["PMR_simulated"].notna()].copy()
+        valid_simulated["rank_simulated"] = valid_simulated["PMR_simulated"].rank(method="min")
+
+        original_rank = int(df["PMR_2023"].rank(method="min").loc[df["Country_clean"] == selected_country_clean].values[0])
+        new_rank = int(valid_simulated.loc[valid_simulated["Country_clean"] == selected_country_clean, "rank_simulated"].values[0])
+
         st.write("---")
         col7, col8, col9 = st.columns(3)
         with col7:
-            st.metric("Original PMR", round(original_pmr, 3))
+            st.metric("Original PMR", round(pmr_score, 3))
         with col8:
-            st.metric("Simulated PMR", round(new_pmr, 3), delta=round(new_pmr - original_pmr, 3))
+            st.metric("Simulated PMR", round(new_pmr, 3), delta=round(new_pmr - pmr_score, 3))
         with col9:
-            st.metric("Simulated Percentile", f"{round(new_percentile)}%")
+            st.metric("Simulated Rank", f"{new_rank} (original: {original_rank})")
     else:
         st.info("Selecciona al menos un rubro de nivel medio para comenzar.")
+
+        
 elif mode == "Stats":
     st.header("📈 PMR Trends")
 
