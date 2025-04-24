@@ -88,16 +88,19 @@ if mode == "Guided simulation":
     for ind, val in sliders.items():
         simulated_row[ind] = val
 
-    for medium in medium_level_indicators:
-        subcomponents = [col for col in low_level_indicators if col in df.columns and (col in medium or medium in col)]
-        if subcomponents:
-            simulated_row[medium] = simulated_row[subcomponents].mean()
+    has_changes = any(row[ind] != val for ind, val in sliders.items())
+
+    if has_changes:
+        for medium in medium_level_indicators:
+            subcomponents = [ col for col in low_level_indicators if col in df.columns and (col in medium or medium in col)]
+            if subcomponents:
+                simulated_row[medium] = simulated_row[subcomponents].mean()
 
     new_medium_avg = simulated_row[medium_level_indicators].mean()
     original_medium = row[medium_level_indicators].mean()
 
     df_simulated = df.copy()
-    df_simulated.loc[df_simulated["Country"] == selected_country, medium_level_indicators] = simulated_row[medium_level_indicators]
+    df_simulated.loc[df_simulated["Country"] == selected_country, low_level_indicators + medium_level_indicators] = simulated_row[low_level_indicators + medium_level_indicators]
     df_simulated["PMR_simulated"] = df_simulated[medium_level_indicators].mean(axis=1)
     valid_simulated = df_simulated[df_simulated["PMR_simulated"].notna()].copy()
     valid_simulated["rank_simulated"] = valid_simulated["PMR_simulated"].rank(method="min")
