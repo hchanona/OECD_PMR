@@ -100,6 +100,13 @@ def compute_full_pmr(row, low_to_medium_map, medium_to_high_map):
     return row
 
 # === SIDEBAR ===
+st.sidebar.markdown(
+    "<h1 style='font-size: 28px; margin-bottom: 0;'>PMR Sandbox (Unofficial)</h1>",
+    unsafe_allow_html=True
+)
+st.sidebar.header("Options")
+
+
 st.sidebar.header("Options")
 mode = st.sidebar.radio("What do you want to simulate?", ["Relative ranking", "Impact on the economy"])
 countries = df["Country"].tolist()
