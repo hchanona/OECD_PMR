@@ -119,6 +119,18 @@ elif mode == "Impact on the economy":
     <h1 style='color:#1f77b4; font-weight: bold;'>PMR Sandbox – Economic Impact</h1>
     """, unsafe_allow_html=True)
 
+
+with st.expander("About this tool"):
+    st.markdown("""
+    This sandbox was designed as a **complementary interface** to the OECD’s official PMR Policy Simulator.
+
+    It aims to:
+    - Show how PMR reform is economically relevant by illustrating its association with **GDP per capita** (via a log-log regression model).
+    - Provide an intuitive first look into PMR structure using **medium- and low-level indicators**.
+
+    For deeper exploration of the detailed components and underlying survey questions, the official OECD simulator remains the ideal next step.
+    """)
+
 st.sidebar.markdown("""---""")
 st.sidebar.markdown("""
 ### What is the PMR Sandbox?
