@@ -114,7 +114,55 @@ if mode == "Guided simulation":
 
 # === MODO: AUTONOMOUS SIMULATION ===
 elif mode == "Autonomous simulation":
-    st.info("🧭 Autonomous simulation mode coming soon. Stay tuned!")
+    st.subheader("🧭 Autonomous Simulation – Choose Reform Areas Hierarchically")
+
+    st.markdown("Selecciona hasta **tres indicadores de nivel medio** para simular reformas:")
+
+    selected_rubros = st.multiselect(
+        "Indicadores de nivel medio",
+        options=medium_level_indicators,
+        default=[],
+        max_selections=3,
+        help="Selecciona los rubros que deseas reformar")
+
+    if selected_rubros:
+        simulated_row = row.copy()
+
+        st.write("### 🎯 Ajusta los subcomponentes de cada rubro seleccionado:")
+        for rubro in selected_rubros:
+            st.markdown(f"**{rubro}**")
+            subcomponents = [col for col in low_level_indicators if col in df.columns and col in simulated_row.index and col in rubro or rubro in col]
+            if not subcomponents:
+                st.warning("No se encontraron subcomponentes directamente ligados. Por ahora, usa coincidencia de texto en el nombre.")
+            for sub in subcomponents:
+                current_val = simulated_row[sub]
+                new_val = st.slider(f"{sub}", 0.0, 6.0, float(current_val), 0.1)
+                simulated_row[sub] = new_val
+
+        # Recalcular nivel medio
+        for rubro in medium_level_indicators:
+            sublist = [col for col in low_level_indicators if col in df.columns and col in rubro or rubro in col]
+            if sublist:
+                simulated_row[rubro] = simulated_row[sublist].mean()
+
+        # Recalcular PMR
+        new_pmr = simulated_row[medium_level_indicators].mean()
+        original_pmr = row[medium_level_indicators].mean()
+        df["PMR_simulated"] = df[medium_level_indicators].mean(axis=1)
+        new_percentile = (df["PMR_simulated"] > new_pmr).mean() * 100
+
+        st.write("---")
+        col7, col8, col9 = st.columns(3)
+        with col7:
+            st.metric("Original PMR", round(original_pmr, 3))
+        with col8:
+            st.metric("Simulated PMR", round(new_pmr, 3), delta=round(new_pmr - original_pmr, 3))
+        with col9:
+            st.metric("Simulated Percentile", f"{round(new_percentile)}%")
+
+    else:
+        st.info("Selecciona al menos un rubro de nivel medio para comenzar.")
+
 
 # === MODO: STATS ===
 elif mode == "Stats":
