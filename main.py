@@ -19,6 +19,11 @@ def load_data():
 df = load_data()
 st.write(f"🌍 This dataset includes **{df['Country'].nunique()} countries**.")
 
+high_level_indicators = [
+    "Distortions Induced by State Involvement",
+    "Barriers to Domestic and Foreign Entry"
+]
+
 medium_level_indicators = [
     "Distortions Induced by Public Ownership",
     "Involvement in Business Operations",
@@ -30,7 +35,9 @@ medium_level_indicators = [
 
 low_level_indicators = [
     col for col in df.columns
-    if col not in ["Country", "Country_clean", "OECD", "GDP_PCAP_2023", "PMR_2023"] + medium_level_indicators
+    if col not in ["Country", "Country_clean", "OECD", "GDP_PCAP_2023", "PMR_2023"]
+    + medium_level_indicators
+    + high_level_indicators
 ]
 
 st.sidebar.header("Options")
@@ -39,6 +46,67 @@ countries = df["Country"].tolist()
 selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Australia") if "Australia" in countries else 0)
 
 # === MODO: SIMULACIÓN GUIADA ===
+# === FUNCIÓN DE CÁLCULO COMPLETO DESDE NIVEL BAJO ===
+def compute_full_pmr(row, low_to_medium_map, medium_to_high_map):
+    row = row.copy()
+
+    # Calcular medios desde bajos
+    for medium, lows in low_to_medium_map.items():
+        values = [row[col] for col in lows if pd.notna(row[col])]
+        row[medium] = np.mean(values) if values else np.nan
+
+    # Calcular altos desde medios
+    for high, mediums in medium_to_high_map.items():
+        values = [row[col] for col in mediums if pd.notna(row[col])]
+        row[high] = np.mean(values) if values else np.nan
+
+    # Calcular PMR desde altos
+    high_values = [row[col] for col in medium_to_high_map.keys() if pd.notna(row[col])]
+    row["PMR_simulated"] = np.mean(high_values) if high_values else np.nan
+
+    return row
+
+
+# === MAPEOS DE INDICADORES ===
+low_to_medium_map = {
+    "Distortions Induced by Public Ownership": [
+        "Quality and Scope of Public Ownership", "Governance of SOEs"
+    ],
+    "Involvement in Business Operations": [
+        "Retail Price Controls and Regulation",
+        "Involvement in Business Operations in Network Sectors",
+        "Involvement in Business Operations in Service Sectors",
+        "Public Procurement"
+    ],
+    "Regulations Impact Evaluation": [
+        "Assessment of Impact on Competition", "Interaction with Stakeholders"
+    ],
+    "Administrative and Regulatory Burden": [
+        "Administrative Requirements for Limited Liability Companies and Personally-owned Enterprises",
+        "Communication and Simplification of Administrative and Regulatory Burden"
+    ],
+    "Barriers in Service & Network sectors": [
+        "Barriers to entry in Service Sectors", "Barriers to entry in Network Sectors"
+    ],
+    "Barriers to Trade and Investment": [
+        "Barriers to FDI", "Barriers to Trade Facilitation", "Tariff Barriers"
+    ]
+}
+
+medium_to_high_map = {
+    "Distortions Induced by State Involvement": [
+        "Distortions Induced by Public Ownership",
+        "Involvement in Business Operations",
+        "Regulations Impact Evaluation"
+    ],
+    "Barriers to Domestic and Foreign Entry": [
+        "Administrative and Regulatory Burden",
+        "Barriers in Service & Network sectors",
+        "Barriers to Trade and Investment"
+    ]
+}
+
+# === SIMULACIÓN GUIADA ===
 if mode == "Guided simulation":
     selected_country_clean = selected_country.strip().lower()
     row = df[df["Country_clean"] == selected_country_clean].iloc[0]
@@ -89,10 +157,7 @@ if mode == "Guided simulation":
     for ind, val in sliders.items():
         simulated_row[ind] = val
 
-    for medium in medium_level_indicators:
-        subcomponents = [col for col in low_level_indicators if col in df.columns and (col in medium or medium in col)]
-        if subcomponents:
-            simulated_row[medium] = simulated_row[subcomponents].mean()
+    simulated_row = compute_full_pmr(simulated_row, low_to_medium_map, medium_to_high_map)
 
     new_medium_avg = simulated_row[medium_level_indicators].mean()
     original_medium = row[medium_level_indicators].mean()
@@ -117,7 +182,6 @@ if mode == "Guided simulation":
         st.metric("Simulated PMR Estimate", round(new_medium_avg, 3), delta=round(new_medium_avg - original_medium, 3))
     with col6:
         st.metric("Simulated Rank", f"{new_rank}" if new_rank is not None else "N/A")
-
 
 elif mode == "Autonomous simulation":
     st.subheader("🧭 Autonomous Simulation – Choose Reform Areas Hierarchically")
