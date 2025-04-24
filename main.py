@@ -16,6 +16,8 @@ def load_data():
     return df
 
 df = load_data()
+df["Country_clean"] = df["Country"].str.strip().str.lower()
+
 st.write(f"🌍 This dataset includes **{df['Country'].nunique()} countries**.")
 
 medium_level_indicators = [
