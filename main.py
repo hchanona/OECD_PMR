@@ -263,7 +263,7 @@ elif mode == "Impact on the economy":
     x=df_oecd["log_pmr"],
     y=df_oecd["log_gdp"],
     mode='markers',
-    name="OECD Countries",
+    name="OECD countries",
     marker=dict(color='blue', size=8, opacity=0.7),
     showlegend=True))
 
@@ -272,7 +272,7 @@ elif mode == "Impact on the economy":
     x=df_non_oecd["log_pmr"],
     y=df_non_oecd["log_gdp"],
     mode='markers',
-    name="Non-OECD Countries",
+    name="Non-OECD countries",
     marker=dict(color='red', size=8, opacity=0.7),
     showlegend=True))
 
@@ -288,14 +288,14 @@ elif mode == "Impact on the economy":
     x=x_range,
     y=y_oecd,
     mode='lines',
-    name=f"OECD Regression Line (slope={round(beta1,2)})",
+    name=f"OECD regression line (slope={round(beta1,3)})",
     line=dict(color='blue', dash='dash')))
 
     scatter_fig.add_trace(go.Scatter(
     x=x_range,
     y=y_non_oecd,
     mode='lines',
-    name=f"Non-OECD Regression Line (slope={round(beta1,2)})",
+    name=f"Non-OECD regression line (slope={round(beta1,3)})",
     line=dict(color='red', dash='dot')))
 
     scatter_fig.update_layout( xaxis_title="log(PMR)",yaxis_title="log(GDP per capita, PPP)", legend_title="Group", width=900, height=600,plot_bgcolor='white')
