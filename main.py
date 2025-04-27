@@ -16,7 +16,6 @@ def load_data():
 
 df = load_data()
 
-# === INDICADORES DEFINIDOS ===
 high_level_indicators = [
     "Distortions Induced by State Involvement",
     "Barriers to Domestic and Foreign Entry"
@@ -38,7 +37,6 @@ low_level_indicators = [
     + high_level_indicators
 ]
 
-# === MAPEOS DE INDICADORES ===
 low_to_medium_map = {
     "Distortions Induced by Public Ownership": [
         "Quality and Scope of Public Ownership", "Governance of SOEs"
@@ -77,27 +75,22 @@ medium_to_high_map = {
     ]
 }
 
-# === FUNCIÓN DE CÁLCULO COMPLETO DESDE NIVEL BAJO ===
 def compute_full_pmr(row, low_to_medium_map, medium_to_high_map):
     row = row.copy()
 
-    # Calcular medios desde bajos
     for medium, lows in low_to_medium_map.items():
         values = [row[col] for col in lows if pd.notna(row[col])]
         row[medium] = np.mean(values) if values else np.nan
 
-    # Calcular altos desde medios
     for high, mediums in medium_to_high_map.items():
         values = [row[col] for col in mediums if pd.notna(row[col])]
         row[high] = np.mean(values) if values else np.nan
 
-    # Calcular PMR desde altos (no se requiere mapeo porque son solo 2 componentes fijos)
     high_values = [row[col] for col in medium_to_high_map.keys() if pd.notna(row[col])]
     row["PMR_simulated"] = np.mean(high_values) if high_values else np.nan
 
     return row
 
-# === SIDEBAR ===
 st.sidebar.markdown(
     "<h1 style='font-size: 28px; margin-bottom: 0;'>PMR Sandbox (Unofficial)</h1>",
     unsafe_allow_html=True
@@ -108,7 +101,6 @@ mode = st.sidebar.radio("What do you want to simulate?", ["Relative ranking", "I
 countries = df["Country"].tolist()
 selected_country = st.sidebar.selectbox("Select a country", countries, index=countries.index("Australia") if "Australia" in countries else 0)
 
-# === TÍTULO DINÁMICO ===
 if mode == "Relative ranking":
     st.markdown("""
     <h1 style='color:#1f77b4; font-weight: bold;'>PMR Sandbox – Relative Ranking</h1>
@@ -145,7 +137,6 @@ The PMR score ranges from 0 to 6. Lower scores are better — they indicate fewe
 Data source: OECD PMR 2023–2024.
 """)
 
-# === MODO: SIMULACIÓN GUIADA ===
 if mode == "Relative ranking":
     selected_country_clean = selected_country.strip().lower()
     row = df[df["Country_clean"] == selected_country_clean].iloc[0]
@@ -154,7 +145,6 @@ if mode == "Relative ranking":
     col1, col2 = st.columns(2)
     with col1:
         st.metric(label=f"{selected_country} PMR Score", value=round(pmr_score, 3))
-        # Rank global (entre todos los países)
         global_rank_series = df["PMR_2023"].rank(method="min").astype(int)
         global_rank = int(global_rank_series.loc[df["Country_clean"] == selected_country_clean].values[0])
         st.metric(label="Rank among all countries", value=f"{global_rank} of {len(df)}")
@@ -208,21 +198,17 @@ if mode == "Relative ranking":
 
     df_simulated = df.copy()
 
-    # Asegura que la columna PMR_simulated exista
     if "PMR_simulated" not in df_simulated.columns:
         df_simulated["PMR_simulated"] = np.nan
 
-    # Reemplazar los valores del país simulado
     idx = df_simulated[df_simulated["Country_clean"] == selected_country_clean].index[0]
     for col in low_level_indicators + medium_level_indicators + high_level_indicators + ["PMR_simulated"]:
         df_simulated.at[idx, col] = simulated_row[col]
 
-    # Recalcular PMR_simulated para todos los países
     df_simulated["PMR_simulated"] = df_simulated.apply(
         lambda row: compute_full_pmr(row, low_to_medium_map, medium_to_high_map)["PMR_simulated"], axis=1
     )
 
-    # Calcular ranking
     valid_simulated = df_simulated[df_simulated["PMR_simulated"].notna()].copy()
     valid_simulated["rank_simulated"] = valid_simulated["PMR_simulated"].rank(method="min")
 
@@ -247,16 +233,13 @@ elif mode == "Impact on the economy":
     World Development Indicators database, Eurostat-OECD PPP Programme). Available at: https://data.worldbank.org/indicator/NY.GDP.PCAP.PP.KD
     """)
 
-    # Aquí va la ecuación bien presentada
     st.markdown("### Regression model")
     st.latex(r"\log(\text{GDP}_{\text{PCAP\_2023}}) = \beta_0 + \beta_1 \log(\text{PMR}_{2023}) + \beta_2 \cdot \text{OECD} + \varepsilon")
 
-    # Prepare valid data
     df_log = df[(df["PMR_2023"] > 0) & (df["GDP_PCAP_2023"] > 0)].copy()
     df_log["log_pmr"] = np.log(df_log["PMR_2023"])
     df_log["log_gdp"] = np.log(df_log["GDP_PCAP_2023"])
 
-    # Fit model
     X = sm.add_constant(df_log[["log_pmr", "OECD"]])
     y = df_log["log_gdp"]
     model = sm.OLS(y, X).fit()
@@ -281,16 +264,13 @@ elif mode == "Impact on the economy":
 
     st.markdown(f"**{selected_country}** — Current PMR: **{round(current_pmr, 2)}**, Current GDP (PPP): **${round(current_gdp):,} USD**")
 
-    # Slider: PMR improvement (% reduction)
     pct_reduction = st.slider("% reduction in PMR", 0, 20, 10)
     new_pmr = current_pmr * (1 - pct_reduction / 100)
 
-    # Calculate log-pmr before and after
     log_pmr_now = np.log(current_pmr)
     log_pmr_new = np.log(new_pmr)
     delta_log_pmr = log_pmr_new - log_pmr_now
 
-    # Use coefficient to estimate delta log(GDP)
     coef = model.params["log_pmr"]
     delta_log_gdp = coef * delta_log_pmr
     pct_change_gdp = (np.exp(delta_log_gdp) - 1) * 100
@@ -300,7 +280,6 @@ elif mode == "Impact on the economy":
     st.markdown(f"Reducing PMR from **{round(current_pmr, 2)}** to **{round(new_pmr, 2)}** is associated with an estimated **{round(pct_change_gdp, 2)}%** increase in GDP per capita.")
     st.metric("Projected GDP per capita (PPP)", f"${round(predicted_new_gdp):,} USD")
 
-    # Show difference between actual and predicted GDP
     pred_log_gdp_now = model.predict([[1.0, log_pmr_now, is_oecd]])[0]
     pred_gdp_now = np.exp(pred_log_gdp_now)
 
