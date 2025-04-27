@@ -254,6 +254,56 @@ elif mode == "Impact on the economy":
         st.metric("Adjusted R²", round(model.rsquared_adj, 3))
 
     st.markdown("---")
+    st.subheader("Regression Plot: PMR vs GDP per capita (log-log)")
+
+    scatter_fig = go.Figure()
+
+    df_oecd = df_log[df_log["OECD"] == 1]
+    scatter_fig.add_trace(go.Scatter(
+    x=df_oecd["log_pmr"],
+    y=df_oecd["log_gdp"],
+    mode='markers',
+    name="OECD Countries",
+    marker=dict(color='blue', size=8, opacity=0.7),
+    showlegend=True))
+
+    df_non_oecd = df_log[df_log["OECD"] == 0]
+    scatter_fig.add_trace(go.Scatter(
+    x=df_non_oecd["log_pmr"],
+    y=df_non_oecd["log_gdp"],
+    mode='markers',
+    name="Non-OECD Countries",
+    marker=dict(color='red', size=8, opacity=0.7),
+    showlegend=True))
+
+    x_range = np.linspace(df_log["log_pmr"].min()-0.1, df_log["log_pmr"].max()+0.1, 100)
+    beta0 = model.params["const"]
+    beta1 = model.params["log_pmr"]
+    beta2 = model.params["OECD"]
+
+    y_oecd = beta0 + beta1 * x_range + beta2 * 1
+    y_non_oecd = beta0 + beta1 * x_range + beta2 * 0
+
+    scatter_fig.add_trace(go.Scatter(
+    x=x_range,
+    y=y_oecd,
+    mode='lines',
+    name=f"OECD Regression Line (slope={round(beta1,2)})",
+    line=dict(color='blue', dash='dash')))
+
+    scatter_fig.add_trace(go.Scatter(
+    x=x_range,
+    y=y_non_oecd,
+    mode='lines',
+    name=f"Non-OECD Regression Line (slope={round(beta1,2)})",
+    line=dict(color='red', dash='dot')))
+
+    scatter_fig.update_layout( xaxis_title="log(PMR)",yaxis_title="log(GDP per capita, PPP)", legend_title="Group", width=900, height=600,plot_bgcolor='white')
+
+    st.plotly_chart(scatter_fig, use_container_width=True)
+
+
+    st.markdown("---")
     st.subheader("Simulate the impact of PMR reform")
     selected_country_clean = selected_country.strip().lower()
     row = df[df["Country_clean"] == selected_country_clean].iloc[0]
